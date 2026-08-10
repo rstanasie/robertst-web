@@ -1,3 +1,5 @@
+import Amphora from "@/components/Amphora";
+
 export default function Home() {
   return (
     <main>
@@ -5,7 +7,7 @@ export default function Home() {
 
       <p>Spin the amphora and let the gods choose your story.</p>
 
-      <p>Amphora coming soon.</p>
+      <Amphora/>
     </main>
   );
 }
