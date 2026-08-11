@@ -3,19 +3,17 @@
 import { useState } from "react";
 import Link from "next/link";
 
-const myths = [
-  { name: "Prometheus", story: "prometheus" },
-  { name: "Medusa", story: "medusa" },
-  { name: "Icarus", story: "icarus" },
-];
+import { myths, MythStory } from "@/data/myths";
+
+const mythStories = Object.keys(myths) as MythStory[];
 
 export default function Amphora() {
 
-  const [god, setGod] = useState<(typeof myths)[number] | null>(null);
-  
+  const [story, setStory] = useState<MythStory | null>(null);
+
   function spinAmphora() {
-    const randomIndex = Math.floor(Math.random() * myths.length);
-    setGod(myths[randomIndex]);
+    const randomIndex = Math.floor(Math.random() * mythStories.length);
+    setStory(mythStories[randomIndex]);
   }
 
   return (
@@ -26,11 +24,11 @@ export default function Amphora() {
         Spin the Amphora
       </button>
 
-      {god && (
+      {story && (
         <div>
-          <p>You discovered: {god.name}</p>
+          <p>You discovered: {myths[story].name}</p>
 
-          <Link href={`/myths/${god.story}`}>
+          <Link href={`/myths/${story}`}>
             Read the story
           </Link>
         </div>
