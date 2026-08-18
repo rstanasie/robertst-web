@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { PointerEvent as ReactPointerEvent } from "react";
+import type { PointerEvent as ReactPointerEvent, RefObject } from "react";
 
 import { myths, MythStory } from "@/data/myths";
 import {
@@ -22,15 +22,19 @@ import {
 const MAX_STEP_MS = 64;
 const VELOCITY_SMOOTHING = 0.7;
 
-export type AmphoraRotation = {
+export type AmphoraPointerHandlers = {
+  onPointerDown: (event: ReactPointerEvent<HTMLElement>) => void;
+  onPointerMove: (event: ReactPointerEvent<HTMLElement>) => void;
+  onPointerUp: (event: ReactPointerEvent<HTMLElement>) => void;
+};
+
+export type AmphoraRotation = AmphoraPointerHandlers & {
   angle: number;
+  angleRef: RefObject<number>;
   isDragging: boolean;
   isSpinning: boolean;
   story: MythStory | null;
   spin: () => void;
-  onPointerDown: (event: ReactPointerEvent<HTMLElement>) => void;
-  onPointerMove: (event: ReactPointerEvent<HTMLElement>) => void;
-  onPointerUp: (event: ReactPointerEvent<HTMLElement>) => void;
 };
 
 export function useAmphoraRotation(): AmphoraRotation {
@@ -216,6 +220,7 @@ export function useAmphoraRotation(): AmphoraRotation {
 
   return {
     angle,
+    angleRef,
     isDragging,
     isSpinning,
     story,
