@@ -1,3 +1,5 @@
+import { notFound } from "next/navigation";
+
 import { myths, MythStory } from "@/data/myths";
 
 export default async function MythPage({
@@ -10,7 +12,7 @@ export default async function MythPage({
   const myth = myths[story as MythStory];
 
   if (!myth) {
-    return <main>Myth not found</main>;
+    notFound();
   }
 
   return (
