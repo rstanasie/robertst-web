@@ -1,131 +1,189 @@
-# Amphora 3D asset pipeline
+# Amphora asset pipeline
 
-How to produce the `.glb` and its texture. For the code that consumes them see
-[`amphora-3d.md`](./amphora-3d.md); for the frame-based fallback renderer see
-[`amphora-2d.md`](./amphora-2d.md).
+How `public/models/amphora/*` is produced. For how the assets are *used*, see
+[amphora-3d.md](./amphora-3d.md); for the fallback renderer, see
+[amphora-2d.md](./amphora-2d.md).
 
-The application code is finished and does not need to change when the real artwork
-arrives. Everything below describes the **assets** it consumes.
+```bash
+npm run amphora            # regenerate everything, then verify it
+npm run amphora:verify     # structural checks only
+npm run amphora:preview    # software render of the shipped asset -> PNG
+```
 
-## File locations
+`npm run amphora` needs `cwebp` and `dwebp` on `PATH` (`brew install webp`).
+Nothing else; the generators are plain Node with no dependencies.
 
-| File | Purpose |
+## Why generated rather than modelled
+
+The vessel is authored in code, not in Blender. That is a deliberate trade: the
+model and the painted decoration have to agree about **which scene faces the
+camera at a given rotation**, and that agreement is a numeric contract, not
+something you can eyeball in a viewport. Generating both from one source means
+`data/myths.ts` is still the only place a myth's angle is written down — add a
+myth there, re-run the build, and its panel appears in the right place.
+
+If you would rather model it by hand, see [Replacing this with a real
+model](#replacing-this-with-a-real-model) at the end. Everything downstream keys
+off the contract, not off the generator.
+
+## Files
+
+| File | What it does |
 | --- | --- |
-| `public/models/amphora/amphora.glb` | The vase: body mesh, two handles, UVs, two materials |
-| `public/models/amphora/amphora-story.png` | The myth artwork wrapped around the body |
-| `public/images/amphora/frames/amphora-*.webp` | 2D turntable frames, used only as the no-WebGL fallback |
+| `scripts/amphora/shared.js` | Profile curve, UV constants, PNG read/write, tiling noise |
+| `scripts/amphora/build-model.js` | Lathes the body, sweeps the handles, writes the GLB and `layout.json` |
+| `scripts/amphora/figures.js` | The three black-figure scenes, as vector ops |
+| `scripts/amphora/build-textures.js` | Paints base colour, roughness and normal sheets |
+| `scripts/amphora/preview.js` | Software PBR render, mirroring the app's camera and lights |
+| `scripts/amphora/verify.js` | Structural and contract checks |
+| `scripts/amphora/build.js` | Driver: reads myth angles, runs the above, converts to WebP |
 
-Paths live in `lib/amphoraAssets.ts`. The `.glb` references the texture by the
-relative URI `amphora-story.png`, so the artwork can be redrawn and dropped in
-without re-exporting the model — keep the two files in the same folder.
+`layout.json` is the handoff between geometry and texture. The model measures the
+real wall — arc length, circumference at each height, where the belly is widest —
+and the texture generator uses those numbers to place bands and size ornament.
+Without it the two would drift every time the profile changed.
 
-## Current state: both 3D assets are placeholders
-
-`amphora.glb` and `amphora-story.png` were generated procedurally, not modelled in
-Blender. They are correct in structure, scale, pivot, UV layout and material split,
-so they exercise every code path — but the vase is a plain lathed silhouette and the
-"artwork" is a terracotta panel with the myth's name, an initial in a medallion, and
-one/two/three dots. Replace both with real art.
-
-## Expected final `.glb` structure
-
-- One root node, one mesh, **two primitives**:
-  - primitive 0 — the vase body, material `AmphoraStory`, `baseColorTexture` → the story texture
-  - primitive 1 — handles, rim cap and foot cap, material `AmphoraTerracotta`, no texture
-- No cameras, no lights, no hidden objects, no unused materials.
-- Height normalised to **1 unit**, centred on the origin in all three axes, so the
-  vertical rotation axis passes through the model's centre. The app re-centres and
-  re-scales defensively (`prepareModel` in `components/AmphoraModelViewer.tsx`), so a
-  differently-scaled export still works, but exporting it centred keeps the app honest.
-- Smooth (not flat) normals on the body; unit length.
-- Sampler: `wrapS` REPEAT (the texture wraps the circumference), `wrapT` CLAMP_TO_EDGE,
-  mipmapped min filter.
-
-Current placeholder: 3,666 vertices / 6,816 triangles / 196 KB. Keep the real model in
-the same ballpark; a few tens of thousands of triangles is still fine on mobile.
-Draco and Meshopt were deliberately **not** used — at ~200 KB the decoder would cost
-more than it saves. Revisit if the real model exceeds roughly 1 MB.
-
-## The UV convention (this is the part that must not drift)
-
-The body is a lathe. For a point at angle `theta` around the axis:
+## The contract
 
 ```
-position = (r * sin(theta), y, r * cos(theta))    // theta = 0 faces +Z, toward the camera
-u        = ((theta + PI) / (2 * PI)) mod 1        // so u = 0.5 faces the camera at rest
-v        = 1 - (arc length from the foot / total arc length)
+position(theta) = (r sin theta, y, r cos theta)     theta = 0 faces +Z, the camera
+u               = ((theta + PI) / 2PI) mod 1        u = 0.5 faces the camera
 ```
 
-Rotating the model by `A` degrees about Y moves surface `theta` to `theta + A`, so:
+Rotating the group by `A` degrees moves surface `theta` to `theta + A`, so the
+panel facing the camera at amphora angle `A` is the one painted at
 
 ```
-the artwork facing the camera at amphora angle A sits at u = ((180 - A) / 360) mod 1
+u = ((180 - A) / 360) mod 1
 ```
 
-Two consequences:
+`build-textures.js` derives every panel centre from that formula and the angles in
+`data/myths.ts`. `verify.js` then checks it the other way round — it rotates the
+real vertex data, finds the belly vertex nearest the camera axis, reads its `u`,
+and asserts the panel there is the one `nearestStory()` would snap to. Eight of
+the 360 test angles disagree; all eight sit exactly on a panel seam, where
+`nearestStory` is a coin toss between two equidistant myths and both answers are
+correct. The check allows those and nothing else.
 
-- **The texture seam (u = 0/1) sits at the back of the vase** when the amphora is at
-  0°, which is where it is least visible. Keep it there.
-- `v` follows *arc length*, not height, so artwork is not stretched vertically over
-  the shoulder.
+## Sheet layout
 
-## Texture layout
+One 2048x1024 sheet, `v = 0` at the mouth:
 
-`amphora-story.png` is 2048x1024, one horizontal strip, three equal panels of 1/3
-each. Left to right, matching the `angle` values in `data/myths.ts`:
+| `v` | Zone |
+| --- | --- |
+| 0.000 – 0.875 | The vessel body, mouth to foot |
+| 0.875 – 1.000 | Handle atlas: `u` runs along the arc, `v` around the girth |
 
-| u range | Myth | `angle` in `data/myths.ts` |
+Within the body: black lip, glazed neck, a rosette chain on the shoulder, the
+figural panel across the belly, glazed lower body, a ray band above the foot, and
+a glazed foot. Boundaries are declared as vessel *heights* in `build-model.js`
+and converted to `v` through the arc-length mapping, so moving the profile moves
+the bands with it.
+
+### Aspect
+
+A lathe's UV mapping is anisotropic: `u` covers the local circumference while `v`
+covers the profile arc, and the two are not the same scale. At the belly the sheet
+is roughly 1.5x wider per unit of real surface than it is tall. Every drawing
+primitive therefore works in **real surface units**, converting through
+`pxUAt(v)` and `pxV` at paint time. Draw in texel space instead and the artwork
+comes out squashed — which is exactly what happened the first time, and it is not
+obvious on the flat sheet, only on the vase.
+
+`pxUAt(v)` reads the radius from the profile curve rather than from a band
+boundary. That matters: a step lookup drew every figure about 30% too wide on the
+sheet, and therefore too narrow once wrapped.
+
+## Textures
+
+| Sheet | Size | Purpose |
 | --- | --- | --- |
-| 0 – 1/3 | Medusa | 120° |
-| 1/3 – 2/3 | Prometheus | 0° |
-| 2/3 – 1 | Icarus | 240° |
+| `amphora-basecolor.webp` | 2048x1024, q93 | Clay, glaze, added red and white, fire clouds, wear, baked occlusion |
+| `amphora-roughness.webp` | 1024x512, q90 | glTF metallic-roughness; roughness in green |
+| `amphora-normal.webp` | 1024x512, q92 | Throwing ridges, clay grain, glaze relief |
 
-Artwork occupies only `v` 0.371 – 0.771, the widest part of the belly. The neck, rim
-and foot are left plain because UV distortion there is severe.
+Three details that matter more than they look:
 
-**Aspect pre-compensation.** The belly circumference is 1.72 units and the profile arc
-is 1.15 units, so the surface is about 1.5:1 while the texture is 2:1. Artwork drawn
-in texture space is therefore squeezed horizontally by **1.33x** once wrapped. Either
-draw the artwork 1.33x wider than it should appear (what the placeholder does), or
-export the texture at 3072x2048 and check it on the model. Getting this wrong is
-subtle: circles become tall ellipses and lettering looks condensed.
+**Roughness contrast, not roughness level.** Fired glaze keeps a low satin sheen
+(~0.55) while the reserved clay body is nearly matte (~0.94), and worn spots are
+rougher still. A single uniform roughness is what reads as plastic, however high
+you set it.
 
-## Blender pipeline for the real vase
+**The roughness sheet is grayscale.** Lossy WebP subsamples chroma, which bled the
+unused channels into each other and put up to 0.18 of stray metalness on the clay.
+The sheet is written grayscale so there is no chroma to smear, and
+`metallicFactor` is pinned to `0` in the material so the blue channel cannot
+matter regardless.
 
-1. Draw the side profile as a curve or an edge chain in the XZ plane, then **Spin**
-   (Screw) it 360° around the Z/Y axis with 72–96 segments.
-2. Model **one** handle (curve + bevel, or a tube), then Mirror it across X. Sink both
-   ends a couple of millimetres into the body so no gap shows.
-3. Shade smooth, `Mesh > Normals > Recalculate Outside`. Check for inverted faces.
-4. UV unwrap the body so the **horizontal** axis of the texture runs around the
-   circumference and the seam lands at the back. Follow Active Quads on a ring gives a
-   clean cylindrical unwrap; verify `u` increases monotonically around the vase.
-5. Assign two materials: the body gets the story texture, handles and caps get plain
-   terracotta.
-6. Load `amphora-story.png` in Blender and confirm each myth is centred in its 120°
-   sector **before** exporting.
-7. `Object > Apply > All Transforms`, then place the origin at the model's centre
-   (`Object > Set Origin > Origin to Geometry`, bounds centre).
-8. Delete cameras, lights, empties and unused materials.
-9. Export glTF 2.0 (`.glb`): Include → Selected Objects; Data → Mesh: UVs, Normals;
-   Material: Export. Reference the texture externally rather than packing it, so the
-   artwork stays swappable.
-10. Re-run the checks in the "Verifying a new asset" section below.
+**The normal map is self-calibrating.** Amplitudes for ridges, grain, dents and
+glaze relief are authored as *relative* weights; the combined gradient is then
+scaled to hit a target mean tilt of 3.2°. Hand-picking absolute amplitudes got the
+strength wrong by more than an order of magnitude and corrugated the whole vessel
+like cardboard. `verify.js` asserts mean tilt stays under 6° and peak under 30°.
 
-## Adding a myth later
+Sheets are generated as PNG (what Node can write losslessly) into a temp
+directory, then converted to WebP for shipping. Only the WebP files land in
+`public/`. The GLB declares `EXT_texture_webp` as **required** — three supports
+it, the 2D fallback frames are WebP already, and if a browser could not decode
+WebP the loader would error into that fallback anyway.
 
-1. Add an entry to `data/myths.ts` with a stable key (that key **is** the
-   `/myths/[story]` route) and an `angle`.
-2. Space the angles evenly — with four myths use 0/90/180/270.
-3. Redraw the texture with one panel per myth, each `1 / count` wide, placing each
-   myth's panel centre at `u = ((180 - angle) / 360) mod 1`.
-4. Nothing else changes: snapping, nearest-myth selection and the result panel all
-   read `data/myths.ts`.
+## Painting the scenes
 
-## Verifying a new asset
+`figures.js` holds three scenes as lists of ops — `poly`, `stroke`, `ell` — in
+figure units with `y` up and `y = 0` on the ground line. Colours are named after
+the technique: `glaze` (black slip), `clay` (the reserved ground, which is how
+incised lines read), `red` and `white` (added colour, painted over fired glaze).
 
-- The vase and both handles render, and the handles arc clear of the silhouette.
-- At each myth's `angle`, that myth's artwork is centred on screen.
-- Dragging does not make the amphora drift off centre — if it orbits, the pivot is
-  off and step 7 above was skipped.
-- The texture rotates with the surface rather than sliding across it.
+All three are scaled by the **same** factor, `panelHeight * 0.90 / 1.15`. Fitting
+each to its own bounding box instead makes whichever figure reaches highest come
+out visibly smaller than its neighbours.
+
+The `wing()` helper generates archaic wings: a solid covert body along a bowed
+leading edge, then separate flight feathers fanning past it with gaps of reserved
+ground between them. Those gaps are the whole trick — without them the feathers
+merge and the wing reads as a curved plank.
+
+Wear is two-scale: a coarse field decides where loss is plausible at all (rim,
+belly, foot ring), and a fine field speckles chips inside those zones. One field
+alone produces camouflage blotches rather than chipped pottery.
+
+## Handles
+
+Swept along a cubic Bezier from just under the lip down to the top of the
+shoulder, above the figural panel so they never cross a scene. The section is a
+squarish superellipse, broader around the vessel than it is thick, with a slight
+outer crest — a circular section is what makes a handle read as a length of pipe.
+It is fat at both joins and slightly waisted at the apex, and the tube is extended
+past both attachment points so the ends are buried in the wall rather than butted
+against it. `verify.js` checks that burial, and that no part of a handle projects
+beyond the belly silhouette.
+
+Two handles cannot align with three panels. Their placement maximises the minimum
+distance from any panel centre, which works out to 1/12 of a turn — the best
+available, but a handle still crosses the upper corner of a scene at some angles,
+exactly as on a real amphora.
+
+## Adding a myth
+
+1. Add the entry to `data/myths.ts` with its `angle`.
+2. Add a scene of the same key to `scripts/amphora/figures.js`.
+3. `npm run amphora`.
+
+`build-textures.js` throws if a myth has no scene, so a half-done addition fails
+the build rather than shipping a blank panel. Panel count, panel width, ornament
+repeat and figure scale all follow from the number of myths.
+
+## Replacing this with a real model
+
+Swap in a hand-modelled `amphora.glb` and keep the contract:
+
+1. Lathe the profile around **Y**, centred on the axis, height exactly 1, centred
+   on the origin in all three axes.
+2. Unwrap so horizontal texture space maps to rotation, with `u = 0.5` on the
+   surface that faces `+Z`.
+3. Put the seam behind a handle.
+4. Keep the material dielectric: one base colour, one metallic-roughness map with
+   `metallicFactor: 0`, one normal map.
+5. Run `npm run amphora:verify`. It checks the geometry, the textures and the
+   panel contract against `data/myths.ts` without caring how the file was made.
+6. Run `npm run amphora:preview` to see it shaded before opening a browser.

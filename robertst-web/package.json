@@ -6,7 +6,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "amphora": "node scripts/amphora/build.js && node scripts/amphora/verify.js",
+    "amphora:verify": "node scripts/amphora/verify.js",
+    "amphora:preview": "node scripts/amphora/preview.js"
   },
   "dependencies": {
     "@react-three/fiber": "^9.7.0",

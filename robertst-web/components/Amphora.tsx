@@ -7,7 +7,7 @@ import Link from "next/link";
 import { preload } from "react-dom";
 
 import { myths, MythStory } from "@/data/myths";
-import { MODEL_PATH, STORY_TEXTURE_PATH } from "@/lib/amphoraAssets";
+import { BASE_COLOUR_TEXTURE_PATH, MODEL_PATH } from "@/lib/amphoraAssets";
 import { useAmphoraRotation } from "@/lib/useAmphoraRotation";
 import AmphoraFrameViewer from "@/components/AmphoraFrameViewer";
 
@@ -79,7 +79,7 @@ export default function Amphora() {
     }
 
     preload(MODEL_PATH, { as: "fetch" });
-    preload(STORY_TEXTURE_PATH, { as: "image" });
+    preload(BASE_COLOUR_TEXTURE_PATH, { as: "image" });
   }, [mode]);
 
   const handleModelError = useCallback(() => setModelFailed(true), []);

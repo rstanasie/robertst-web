@@ -4,7 +4,12 @@ The original implementation, and now the fallback the site uses when WebGL is
 unavailable or the 3D model fails to load. It rotates by swapping pre-rendered
 frames — there is no CSS `rotateY()` trickery and no 3D geometry involved.
 
-For the 3D version see [`amphora-3d.md`](./amphora-3d.md).
+For the 3D version see [`amphora-3d.md`](./amphora-3d.md); for how its assets are
+produced, [`amphora-asset-pipeline.md`](./amphora-asset-pipeline.md).
+
+The frames here are still the flat placeholder renders from before the 3D vessel was
+built, so the fallback does not yet match the default viewer's appearance. Re-rendering
+them from the current model would fix that — see the note under **Placeholder frames**.
 
 ## Files
 

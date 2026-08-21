@@ -3,16 +3,18 @@
 import { memo, useEffect, useRef, useState } from "react";
 import type { RefObject } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { Box3, Group, MathUtils, Mesh, MeshStandardMaterial, Vector3 } from "three";
+import { Box3, Group, MathUtils, Mesh, MeshStandardMaterial, NeutralToneMapping, Vector3 } from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 
 import { MODEL_PATH } from "@/lib/amphoraAssets";
 
 const TARGET_HEIGHT = 1;
-const CAMERA_DISTANCE = 2.15;
-const CAMERA_FOV = 35;
+const CAMERA_DISTANCE = 2.05;
+const CAMERA_FOV = 34;
 const MAX_PIXEL_RATIO = 2;
-const TEXTURE_ANISOTROPY = 4;
+// A vessel spinning on its axis is nearly always seen at a glancing angle, where
+// anisotropic filtering is the difference between crisp painted lines and mush.
+const TEXTURE_ANISOTROPY = 8;
 
 type LoadState =
   | { status: "loading" }
@@ -42,10 +44,18 @@ function prepareModel(scene: Group): Group {
 
     const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
     for (const material of materials) {
-      const map = (material as MeshStandardMaterial).map;
-      if (map) {
-        map.anisotropy = TEXTURE_ANISOTROPY;
+      const standard = material as MeshStandardMaterial;
+      for (const map of [standard.map, standard.roughnessMap, standard.metalnessMap, standard.normalMap]) {
+        if (map) {
+          map.anisotropy = TEXTURE_ANISOTROPY;
+        }
       }
+      // Fired clay is a dielectric with no environment to reflect. Leaving any
+      // metalness or image-based reflection in place is what made the vessel
+      // look like moulded plastic.
+      standard.metalness = 0;
+      standard.envMapIntensity = 0;
+      standard.needsUpdate = true;
     }
   });
 
@@ -127,12 +137,19 @@ function AmphoraModelViewer({ angleRef, isActive, onError }: Props) {
       <Canvas
         frameloop={isActive ? "always" : "demand"}
         dpr={[1, MAX_PIXEL_RATIO]}
-        gl={{ antialias: true, alpha: true }}
+        gl={{ antialias: true, alpha: true, toneMapping: NeutralToneMapping }}
         camera={{ position: [0, 0, CAMERA_DISTANCE], fov: CAMERA_FOV }}
       >
-        <ambientLight intensity={0.75} />
-        <directionalLight position={[2.5, 3, 4]} intensity={2.2} />
-        <directionalLight position={[-3, 1, -2]} intensity={0.8} />
+        {/* Sky-to-ground fill stands in for a room: cool from above, warm bounce
+            from below. A flat ambient term gives the dead, evenly-lit look of a
+            render, not of an object sitting somewhere. */}
+        <hemisphereLight args={["#9ea8bd", "#4d3324", 1.35]} />
+        {/* One soft key, a cool rim to separate the shoulder from the background,
+            and a weak warm bounce. Intensities stay low because a broad rough
+            surface blows out long before a smooth one does. */}
+        <directionalLight position={[2.4, 2.9, 3.6]} intensity={1.55} color="#fff5e6" />
+        <directionalLight position={[-3, 0.9, 1.4]} intensity={0.55} color="#b8c9f0" />
+        <directionalLight position={[-0.8, -1.6, 2.2]} intensity={0.28} color="#fac79e" />
 
         <RotatingModel model={state.model} angleRef={angleRef} isActive={isActive} />
       </Canvas>
