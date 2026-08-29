@@ -178,7 +178,11 @@ export default function Amphora({ week }: { week: WeekView }) {
           {all.map((entry) => {
             const sealed = !entry.unlocked && entry.access === "locked";
             return (
-              <li key={entry.slug} data-sealed={sealed ? "" : undefined}>
+              <li
+                key={entry.slug}
+                data-sealed={sealed ? "" : undefined}
+                data-current={entry.slug === story ? "" : undefined}
+              >
                 <Link href={`/myths/${entry.slug}`}>
                   {sealed && (
                     <span aria-hidden="true" className="myth-seal">
