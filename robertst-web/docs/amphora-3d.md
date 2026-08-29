@@ -6,6 +6,7 @@ away on its own — no frame swapping, no CSS `rotateY()`.
 
 - The 2D frame turntable, used as the WebGL fallback: [`amphora-2d.md`](./amphora-2d.md)
 - Producing the model and the painted sheets: [`amphora-asset-pipeline.md`](./amphora-asset-pipeline.md)
+- The page it sits on, whose frieze reuses the same artwork: [`homepage-backdrop.md`](./homepage-backdrop.md)
 
 ## Files
 
@@ -165,24 +166,25 @@ a screen reader. `prefers-reduced-motion` skips inertia and snap animation.
 
 ## Myth angles
 
-Angles live in `data/myths.ts` alongside the name and description — one source of truth,
-keyed by the same string used for the `/myths/[story]` route:
+Angles come from the active week, via `lib/content/vase.ts` and the generated
+`data/vase-panels.json`:
 
 ```ts
-prometheus: { name: "Prometheus", description: "…", angle: 0 }
-medusa:     { name: "Medusa",     description: "…", angle: 120 }
-icarus:     { name: "Icarus",     description: "…", angle: 240 }
+// data/vase-panels.json, generated from the active week
+{ "key": "prometheus", "angle": 36,  "slot": 0, "access": "preview" }
+{ "key": "orpheus",    "angle": 252, "slot": 3, "access": "locked"  }
 ```
 
-`nearestStory(angle)` in `lib/amphora.ts` picks the winner using shortest circular
-distance, so 355° correctly resolves to Prometheus at 0° rather than to Icarus at 240°.
-Sector midpoints (60/180/300 with three myths) are exact ties and resolve deterministically
-to the earlier key.
+`nearestStop(angle, stops)` in `lib/amphora.ts` picks the winner using shortest circular
+distance. It takes the stops as an argument and imports no content, which is what lets the
+weekly collection change without touching the physics. Exact midpoints tie and resolve
+deterministically to the earlier stop.
 
-**To add a myth:** add an entry with a stable key and an angle, respace the angles evenly,
-and redraw the texture with one panel per myth. Nothing in the components needs editing —
-snapping, selection and the result panel all read `data/myths.ts`. The texture panel
-centre for a myth goes at `u = ((180 - angle) / 360) mod 1`; see the pipeline doc.
+**Adding a myth** is now a content operation, not a code one: see
+[`weekly-publishing.md`](./weekly-publishing.md). The vessel's capacity and angles are
+declared once in `lib/content/vase.ts`, `npm run content:sync` writes
+`data/vase-panels.json`, and `npm run amphora` repaints from it. A figure's centre still
+goes at `u = ((180 - angle) / 360) mod 1`.
 
 ## The UV convention
 

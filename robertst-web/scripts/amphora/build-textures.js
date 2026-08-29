@@ -2,6 +2,13 @@
 
 // Paints the amphora's three sheets: base colour, roughness and normal.
 //
+// The belly carries one continuous frieze — one figure per entry in
+// data/vase-panels.json and nothing between them: the figures share a single
+// register of reserved clay, the way a running frieze does. A sealed entry
+// is painted like the others and then obscured: the picture is blurred and two
+// glaze cords are tied across it. That happens at the end of the base-colour
+// pass, because the cords have to stay crisp over a blurred figure.
+//
 // Everything is rasterised into a material-id buffer first, at 2x, and only then
 // shaded. That keeps the wear, fire clouds and glaze thinning as one coherent
 // pass over clean masks instead of a stack of colour blends, and it means the
@@ -12,7 +19,7 @@ const path = require("path");
 const S = require("./shared.js");
 const FIGURES = require("./figures.js");
 
-const [, , OUT_DIR, LAYOUT_PATH, MYTHS_PATH] = process.argv;
+const [, , OUT_DIR, LAYOUT_PATH, PANELS_PATH] = process.argv;
 const layout = JSON.parse(fs.readFileSync(LAYOUT_PATH, "utf8"));
 const SS = 2;
 const W = S.TEX_W;
@@ -207,49 +214,18 @@ encircle(V.footTop - 0.0090, 0.0026, RED);
   }
 }
 
-// --- ivy tendrils between the three scenes --------------------------------
-{
-  const vTop = V.panelTop + 0.010;
-  const vBottom = V.panelBottom - 0.010;
-  const px = pxUAt((vTop + vBottom) / 2);
-  for (const u of [0, 1 / 3, 2 / 3]) {
-    const cx = X(u);
-    const steps = 72;
-    const stem = [];
-    for (let s = 0; s <= steps; s++) {
-      const t = s / steps;
-      stem.push([cx + Math.sin(t * Math.PI * 5.2) * 0.0075 * px, Y(vTop) + t * (Y(vBottom) - Y(vTop))]);
-    }
-    strokePath(stem, 0.0034 * px, 0, GLAZE);
-    for (let s = 3; s < steps - 2; s += 5) {
-      const p = stem[s];
-      const side = Math.floor(s / 5) % 2 ? 1 : -1;
-      const lx = 0.0130 * px;
-      const ly = 0.0080 * pxV;
-      // small heart-shaped ivy leaf on a short stalk
-      strokePath([p, [p[0] + side * lx * 0.80, p[1] - ly * 0.62]], 0.0024 * px, 0, GLAZE);
-      // heart-shaped ivy leaf: two lobes and a point
-      fillDisc(p[0] + side * lx * 1.10, p[1] - ly * 1.42, lx * 0.50, ly * 0.50, GLAZE);
-      fillDisc(p[0] + side * lx * 1.72, p[1] - ly * 1.10, lx * 0.50, ly * 0.50, GLAZE);
-      fillPoly([
-        [p[0] + side * lx * 0.86, p[1] - ly * 1.06],
-        [p[0] + side * lx * 1.96, p[1] - ly * 1.46],
-        [p[0] + side * lx * 2.16, p[1] - ly * 0.10],
-      ], GLAZE);
-    }
-  }
-}
+// --- figure placement ------------------------------------------------------
+// Centres come straight from the UV contract: a myth at amphora angle A is
+// painted at u = ((180 - A) / 360) mod 1.
+const PANELS = JSON.parse(fs.readFileSync(PANELS_PATH, "utf8")).map((panel) => ({
+  key: panel.key,
+  access: panel.access,
+  u: (((180 - panel.angle) / 360) % 1 + 1) % 1,
+  ops: FIGURES[panel.key] ?? (panel.access === "locked" ? FIGURES.veiled : null),
+}));
+const SLOT_U = 1 / PANELS.length;
 
 // --- figural scenes --------------------------------------------------------
-// Panel centres come straight from the UV contract: a myth at amphora angle A
-// is painted at u = ((180 - A) / 360) mod 1.
-const myths = JSON.parse(fs.readFileSync(MYTHS_PATH, "utf8"));
-const PANELS = Object.entries(myths).map(([key, myth]) => ({
-  key,
-  u: (((180 - myth.angle) / 360) % 1 + 1) % 1,
-  ops: FIGURES[key],
-}));
-
 function bbox(ops) {
   let minX = Infinity;
   let maxX = -Infinity;
@@ -271,13 +247,41 @@ function bbox(ops) {
 
 const FIGURE_FILL = 0.90; // of the panel's painted height
 const FIGURE_TOP = 1.15;  // authored y that lands at the top of that height
+const FIGURE_SPAN = 0.78; // of the slot's width, at its widest figure
 const panelRealHeight = ((V.panelBottom - V.panelTop) * SH) / pxV;
 const groundV = V.panelBottom - 0.020;
 
 for (const panel of PANELS) {
-  if (!panel.ops) throw new Error(`no figure authored for myth "${panel.key}"`);
+  if (!panel.ops) {
+    throw new Error(
+      `no figure authored for "${panel.key}" in scripts/amphora/figures.js. ` +
+        `A sealed slot falls back to the veiled form, but a readable one has to be drawn.`,
+    );
+  }
+}
+
+// One scale for every figure, so they keep the relative sizes they were drawn
+// at — and narrow enough that the widest of them fits its share of the belly.
+// With five slots instead of three, width is the binding constraint, not height.
+const slotRealWidth = (layout.bellyCircumference ?? 2 * Math.PI * layout.maxRadius) * SLOT_U;
+const widest = Math.max(...PANELS.map((panel) => { const b = bbox(panel.ops); return b.maxX - b.minX; }));
+const FIGURE_UNIT = Math.min(
+  (panelRealHeight * FIGURE_FILL) / FIGURE_TOP,
+  (slotRealWidth * FIGURE_SPAN) / widest,
+);
+console.log(
+  `frieze: ${PANELS.length} figures, unit ${FIGURE_UNIT.toFixed(4)} ` +
+    `(height would allow ${((panelRealHeight * FIGURE_FILL) / FIGURE_TOP).toFixed(4)}, ` +
+    `slot width ${((slotRealWidth * FIGURE_SPAN) / widest).toFixed(4)})`,
+);
+
+// Rectangles to blur, and the cord pixels that must stay crisp inside them.
+const sealedRects = [];
+const crisp = new Uint8Array(SW * SH);
+
+for (const panel of PANELS) {
   const box = bbox(panel.ops);
-  const unit = (panelRealHeight * FIGURE_FILL) / FIGURE_TOP;
+  const unit = FIGURE_UNIT;
   const sx = pxUAt(0.5 * (V.panelTop + V.panelBottom));
   const cx = X(panel.u) - ((box.minX + box.maxX) / 2) * unit * sx;
   const baseY = Y(groundV);
@@ -296,6 +300,44 @@ for (const panel of PANELS) {
       if (op.ring) ringDisc(centre[0], centre[1], rx, ry, op.ring * unit * sx, paint(op.col));
       else fillDisc(centre[0], centre[1], rx, ry, paint(op.col));
     }
+  }
+
+  if (panel.access === "locked") {
+    // Two cords tied across the picture: the frieze's way of saying "not this
+    // one". Painted into the id buffer so they behave as glaze under the light,
+    // and recorded so the blur below leaves them alone.
+    const halfW = SLOT_U * SW * 0.29;
+    const cx = X(panel.u);
+    const yTop = Y(V.panelTop + 0.020);
+    const yBottom = Y(V.panelBottom - 0.020);
+    const cordW = 0.0095 * sx;
+
+    // Rasterised with a marker value rather than straight to GLAZE: the veiled
+    // figure underneath is glaze too, so a before/after diff would miss exactly
+    // the pixels where the cords cross it — and those are the ones that have to
+    // survive the blur.
+    const CORD = 200;
+    for (const [from, to] of [
+      [[cx - halfW, yTop], [cx + halfW, yBottom]],
+      [[cx + halfW, yTop], [cx - halfW, yBottom]],
+    ]) {
+      const mid = [(from[0] + to[0]) / 2 + cordW * 0.7, (from[1] + to[1]) / 2];
+      strokePath([from, mid, to], cordW, 0, CORD);
+    }
+    for (let i = 0; i < id.length; i++) {
+      if (id[i] === CORD) {
+        crisp[i] = 1;
+        id[i] = GLAZE;
+      }
+    }
+
+    sealedRects.push({
+      x0: Math.max(0, Math.floor((cx - SLOT_U * SW * 0.46) / SS)),
+      x1: Math.min(W, Math.ceil((cx + SLOT_U * SW * 0.46) / SS)),
+      y0: Math.max(0, Math.floor(Y(V.panelTop) / SS)),
+      y1: Math.min(H, Math.ceil(Y(V.panelBottom) / SS)),
+    });
+    continue;
   }
 
   // A short painted inscription, the way vase painters labelled their figures.
@@ -519,6 +561,107 @@ for (let y = 0; y < H; y++) {
     glazeCoverage[y * W + x] = glaze / n;
     wearCoverage[y * W + x] = Math.max(0, chipField.sample(x / W, y / H) - 0.62) * exposure(y / H);
   }
+}
+
+// --- obscuring the sealed figures ------------------------------------------
+// A sealed slot is painted like any other and then put out of reach here: the
+// picture is blurred, and the cords tied across it are held back from the blur
+// so they stay crisp. Doing it on the shaded colour rather than on the material
+// ids is deliberate — the glaze is still glaze, so roughness and relief stay
+// correct and the obscured figure still catches the light like pottery.
+if (sealedRects.length > 0) {
+  // Two separable box passes approximate a gaussian and stay cheap. The radius
+  // is a fraction of the sheet so it survives a change of texture resolution.
+  const RADIUS = Math.max(3, Math.round(W / 150));
+  const PASSES = 2;
+
+  // A cord pixel at output resolution is any with cord in its supersampled
+  // footprint. The cords blur with everything else and are then put back, which
+  // leaves them crisp with a soft shadow where the blur pulled them outward.
+  const isCord = (x, y) => {
+    for (let sy = 0; sy < SS; sy++) {
+      for (let sx = 0; sx < SS; sx++) {
+        if (crisp[(y * SS + sy) * SW + (x * SS + sx)]) return true;
+      }
+    }
+    return false;
+  };
+
+  for (const rect of sealedRects) {
+    const w = rect.x1 - rect.x0;
+    const h = rect.y1 - rect.y0;
+    const kept = [];
+    for (let y = rect.y0; y < rect.y1; y++) {
+      for (let x = rect.x0; x < rect.x1; x++) {
+        if (!isCord(x, y)) continue;
+        const o = (y * W + x) * 3;
+        kept.push([o, basecolour[o], basecolour[o + 1], basecolour[o + 2]]);
+      }
+    }
+
+    for (let pass = 0; pass < PASSES; pass++) {
+      // horizontal, wrapping: the belly is a cylinder and a slot may cross u = 0
+      const row = new Float32Array(w * 3);
+      for (let y = rect.y0; y < rect.y1; y++) {
+        for (let i = 0; i < w; i++) {
+          let r = 0;
+          let g = 0;
+          let b = 0;
+          for (let d = -RADIUS; d <= RADIUS; d++) {
+            const o = (y * W + ((rect.x0 + i + d + W) % W)) * 3;
+            r += basecolour[o];
+            g += basecolour[o + 1];
+            b += basecolour[o + 2];
+          }
+          const n = RADIUS * 2 + 1;
+          row[i * 3] = r / n;
+          row[i * 3 + 1] = g / n;
+          row[i * 3 + 2] = b / n;
+        }
+        for (let i = 0; i < w; i++) {
+          const o = (y * W + rect.x0 + i) * 3;
+          basecolour[o] = Math.round(row[i * 3]);
+          basecolour[o + 1] = Math.round(row[i * 3 + 1]);
+          basecolour[o + 2] = Math.round(row[i * 3 + 2]);
+        }
+      }
+
+      // vertical, clamped: the panel does not wrap top to bottom
+      const column = new Float32Array(h * 3);
+      for (let x = rect.x0; x < rect.x1; x++) {
+        for (let j = 0; j < h; j++) {
+          let r = 0;
+          let g = 0;
+          let b = 0;
+          let n = 0;
+          for (let d = -RADIUS; d <= RADIUS; d++) {
+            const y = Math.min(rect.y1 - 1, Math.max(rect.y0, rect.y0 + j + d));
+            const o = (y * W + x) * 3;
+            r += basecolour[o];
+            g += basecolour[o + 1];
+            b += basecolour[o + 2];
+            n += 1;
+          }
+          column[j * 3] = r / n;
+          column[j * 3 + 1] = g / n;
+          column[j * 3 + 2] = b / n;
+        }
+        for (let j = 0; j < h; j++) {
+          const o = ((rect.y0 + j) * W + x) * 3;
+          basecolour[o] = Math.round(column[j * 3]);
+          basecolour[o + 1] = Math.round(column[j * 3 + 1]);
+          basecolour[o + 2] = Math.round(column[j * 3 + 2]);
+        }
+      }
+    }
+
+    for (const [o, r, g, b] of kept) {
+      basecolour[o] = r;
+      basecolour[o + 1] = g;
+      basecolour[o + 2] = b;
+    }
+  }
+  console.log(`sealed: ${sealedRects.length} slot(s) blurred (radius ${RADIUS}px x ${PASSES}) and corded`);
 }
 
 // --- roughness (glTF metallicRoughness: G = roughness, B = metalness) ------

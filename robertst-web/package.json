@@ -7,6 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "backdrop": "node scripts/backdrop/build-frieze.js",
+    "content:check": "node scripts/content/check.js",
+    "content:sync": "node scripts/content/sync-vase.js",
     "amphora": "node scripts/amphora/build.js && node scripts/amphora/verify.js",
     "amphora:verify": "node scripts/amphora/verify.js",
     "amphora:preview": "node scripts/amphora/preview.js"

@@ -1,4 +1,14 @@
-import { myths, MythStory } from "@/data/myths";
+/**
+ * Rotation maths and gesture tunables. Deliberately knows nothing about myths,
+ * weeks or access: the caller passes the stops it wants the vessel to settle on,
+ * which is what lets the weekly collection change without touching the physics.
+ */
+
+export type RotationStop = {
+  /** Whatever the caller uses to identify the stop — a myth slug, in practice. */
+  key: string;
+  angle: number;
+};
 
 export const FRAME_COUNT = 36;
 export const DEGREES_PER_FRAME = 360 / FRAME_COUNT;
@@ -37,13 +47,18 @@ export function shortestDelta(from: number, to: number): number {
   return ((to - from + 540) % 360) - 180;
 }
 
-export function nearestStory(angle: number): MythStory {
-  const stories = Object.keys(myths) as MythStory[];
+/**
+ * Shortest circular distance decides, so 355 deg resolves to a stop at 0 rather
+ * than to one at 240. Exact midpoints tie and resolve to the earlier stop.
+ */
+export function nearestStop(angle: number, stops: readonly RotationStop[]): RotationStop {
+  if (stops.length === 0) {
+    throw new Error("nearestStop needs at least one stop");
+  }
 
-  return stories.reduce((closest, story) =>
-    Math.abs(shortestDelta(angle, myths[story].angle)) <
-    Math.abs(shortestDelta(angle, myths[closest].angle))
-      ? story
+  return stops.reduce((closest, stop) =>
+    Math.abs(shortestDelta(angle, stop.angle)) < Math.abs(shortestDelta(angle, closest.angle))
+      ? stop
       : closest,
   );
 }

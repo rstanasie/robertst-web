@@ -1,17 +1,17 @@
 "use client";
 
-import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import type { ReactNode } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { preload } from "react-dom";
 
-import { myths, MythStory } from "@/data/myths";
 import { BASE_COLOUR_TEXTURE_PATH, MODEL_PATH } from "@/lib/amphoraAssets";
 import { useAmphoraRotation } from "@/lib/useAmphoraRotation";
+import type { RotationStop } from "@/lib/amphora";
+import type { WeekView } from "@/lib/content/view";
+import { weekStories } from "@/lib/content/view";
 import AmphoraFrameViewer from "@/components/AmphoraFrameViewer";
-
-const storyKeys = Object.keys(myths) as MythStory[];
 
 function ViewerMessage({ children }: { children: ReactNode }) {
   return (
@@ -52,7 +52,20 @@ const subscribeToNothing = () => () => {};
 const clientViewerMode = (): ViewerMode => (supportsWebGL() ? "model" : "frames");
 const serverViewerMode = (): ViewerMode => "detecting";
 
-export default function Amphora() {
+/**
+ * The week's discovery interface.
+ *
+ * Content arrives as props from the server, already reduced to titles, teasers
+ * and access states — this component has no way to reach story text, which is
+ * what keeps the paywall honest. Rotation, inertia and snapping are unchanged;
+ * only the set of stops it settles on now comes from the active week.
+ */
+export default function Amphora({ week }: { week: WeekView }) {
+  const stops = useMemo<RotationStop[]>(
+    () => week.onVase.map((story) => ({ key: story.slug, angle: story.angle })),
+    [week.onVase],
+  );
+
   const {
     angle,
     angleRef,
@@ -63,7 +76,7 @@ export default function Amphora() {
     onPointerDown,
     onPointerMove,
     onPointerUp,
-  } = useAmphoraRotation();
+  } = useAmphoraRotation(stops);
 
   const detectedMode = useSyncExternalStore(
     subscribeToNothing,
@@ -85,13 +98,18 @@ export default function Amphora() {
   const handleModelError = useCallback(() => setModelFailed(true), []);
 
   const isActive = isDragging || isSpinning;
-  const selectedMyth = story ? myths[story] : null;
+  const found = story ? week.onVase.find((entry) => entry.slug === story) : null;
+  // A sealed story is still a stop on the vessel — you can turn to it, you just
+  // cannot read it. The painted panel is blurred and corded to match.
+  const sealed = Boolean(found && !found.unlocked && found.access === "locked");
+  const all = weekStories(week);
 
   return (
     <section className="flex flex-col items-center gap-4">
-      <h2>The Amphora</h2>
+      <h2 data-amphora="title">The Amphora</h2>
 
       <div
+        data-amphora="stage"
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
@@ -114,7 +132,7 @@ export default function Amphora() {
         {mode === "frames" && <AmphoraFrameViewer angle={angle} />}
       </div>
 
-      <p className="text-sm opacity-70">Drag the amphora sideways to spin it.</p>
+      <p data-amphora="hint">Drag the amphora sideways to spin it.</p>
 
       <button
         type="button"
@@ -128,34 +146,51 @@ export default function Amphora() {
       <div
         role="status"
         aria-live="polite"
-        className="flex min-h-28 flex-col items-center gap-2 text-center"
+        data-sealed={sealed ? "" : undefined}
+        className="flex flex-col items-center gap-2 text-center"
       >
-        {selectedMyth && (
+        {found && (
           <>
             <p>
-              You discovered: <strong>{selectedMyth.name}</strong>
+              {sealed ? "Sealed this week: " : "You turned up: "}
+              <strong>{found.title}</strong>
             </p>
 
-            <p>{selectedMyth.description}</p>
+            <p>{found.teaser}</p>
 
-            <Link href={`/myths/${story}`} className="underline">
-              Read the story
-            </Link>
+            {sealed ? (
+              <Link href="/subscribe" className="underline">
+                Unlock to read
+              </Link>
+            ) : (
+              <Link href={`/myths/${found.slug}`} className="underline">
+                {found.unlocked ? "Read the story" : "Begin reading"}
+              </Link>
+            )}
           </>
         )}
       </div>
 
-      <nav aria-label="All myths" className="text-center text-sm">
-        <p>Or read a myth directly:</p>
+      <nav data-amphora="index" aria-label={`Stories in week ${week.week}`}>
+        <p>This week&rsquo;s five</p>
 
-        <ul className="flex flex-wrap justify-center gap-4">
-          {storyKeys.map((key) => (
-            <li key={key}>
-              <Link href={`/myths/${key}`} className="underline">
-                {myths[key].name}
-              </Link>
-            </li>
-          ))}
+        <ul className="flex flex-wrap justify-center gap-x-4 gap-y-1">
+          {all.map((entry) => {
+            const sealed = !entry.unlocked && entry.access === "locked";
+            return (
+              <li key={entry.slug} data-sealed={sealed ? "" : undefined}>
+                <Link href={`/myths/${entry.slug}`}>
+                  {sealed && (
+                    <span aria-hidden="true" className="myth-seal">
+                      ✦
+                    </span>
+                  )}
+                  {entry.title}
+                  {sealed && <span className="sr-only"> (sealed)</span>}
+                </Link>
+              </li>
+            );
+          })}
         </ul>
       </nav>
     </section>

@@ -15,23 +15,19 @@ const root = path.resolve(here, "../..");
 const out = path.join(root, "public/models/amphora");
 const scratch = fs.mkdtempSync(path.join(os.tmpdir(), "amphora-"));
 
-const source = fs.readFileSync(path.join(root, "data/myths.ts"), "utf8");
-const myths = {};
-for (const [, key, angle] of source.matchAll(/(\w+):\s*\{[^}]*?angle:\s*(-?[\d.]+)/gs)) {
-  myths[key] = { angle: Number(angle) };
-}
-if (!Object.keys(myths).length) throw new Error("no myths with angles found in data/myths.ts");
-console.log(`myths: ${Object.entries(myths).map(([k, m]) => `${k}@${m.angle}deg`).join(", ")}`);
+const panels = JSON.parse(fs.readFileSync(path.join(root, "data/vase-panels.json"), "utf8")).panels;
+if (!panels || !panels.length) throw new Error("data/vase-panels.json has no panels — run `npm run content:sync`");
+console.log(`frieze: ${panels.map((p) => `${p.key}@${p.angle}deg${p.access === "locked" ? " (sealed)" : ""}`).join(", ")}`);
 
 const layoutPath = path.join(scratch, "layout.json");
-const mythsPath = path.join(scratch, "myths.json");
-fs.writeFileSync(mythsPath, JSON.stringify(myths));
+const panelsPath = path.join(scratch, "panels.json");
+fs.writeFileSync(panelsPath, JSON.stringify(panels));
 
 const run = (script, args) => {
   execFileSync(process.execPath, [path.join(here, script), ...args], { stdio: "inherit" });
 };
 run("build-model.js", [path.join(out, "amphora.glb"), layoutPath]);
-run("build-textures.js", [scratch, layoutPath, mythsPath]);
+run("build-textures.js", [scratch, layoutPath, panelsPath]);
 
 // The generators emit PNG because that is what Node can write losslessly; the
 // shipped asset is WebP. Quality is per-sheet: base colour carries crisp painted

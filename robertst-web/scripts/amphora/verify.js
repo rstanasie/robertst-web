@@ -152,11 +152,9 @@ const profile = S.buildProfile();
 // rotation.y by A maps surface theta to theta + A. So the panel facing the
 // camera at angle A must be the one painted at u = ((180 - A)/360) mod 1.
 const myths = {};
-const source = fs.readFileSync(path.join(root, "data/myths.ts"), "utf8");
-for (const [, key, angle] of source.matchAll(/(\w+):\s*\{[^}]*?angle:\s*(-?[\d.]+)/gs)) {
-  myths[key] = Number(angle);
-}
-check("myth angles parsed", Object.keys(myths).length >= 2, JSON.stringify(myths));
+const panels = JSON.parse(fs.readFileSync(path.join(root, "data/vase-panels.json"), "utf8")).panels;
+for (const panel of panels) myths[panel.key] = panel.angle;
+check("frieze angles parsed", Object.keys(myths).length >= 2, JSON.stringify(myths));
 
 // mirrors nearestStory / shortestDelta in lib/amphora.ts
 const shortestDelta = (from, to) => ((to - from + 540) % 360) - 180;

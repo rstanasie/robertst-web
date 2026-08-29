@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { PointerEvent as ReactPointerEvent, RefObject } from "react";
 
-import { myths, MythStory } from "@/data/myths";
 import {
   applyFriction,
   clampVelocity,
@@ -12,12 +11,13 @@ import {
   FLICK_VELOCITY_MAX,
   FLICK_VELOCITY_MIN,
   MIN_VELOCITY,
-  nearestStory,
+  nearestStop,
   normalizeAngle,
   prefersReducedMotion,
   shortestDelta,
   SNAP_DURATION,
 } from "@/lib/amphora";
+import type { RotationStop } from "@/lib/amphora";
 
 const MAX_STEP_MS = 64;
 const VELOCITY_SMOOTHING = 0.7;
@@ -33,15 +33,16 @@ export type AmphoraRotation = AmphoraPointerHandlers & {
   angleRef: RefObject<number>;
   isDragging: boolean;
   isSpinning: boolean;
-  story: MythStory | null;
+  /** Key of the stop the vessel settled on, or null while it is moving. */
+  story: string | null;
   spin: () => void;
 };
 
-export function useAmphoraRotation(): AmphoraRotation {
+export function useAmphoraRotation(stops: readonly RotationStop[]): AmphoraRotation {
   const [angle, setAngle] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const [isSpinning, setIsSpinning] = useState(false);
-  const [story, setStory] = useState<MythStory | null>(null);
+  const [story, setStory] = useState<string | null>(null);
 
   const angleRef = useRef(0);
   const velocityRef = useRef(0);
@@ -63,13 +64,13 @@ export function useAmphoraRotation(): AmphoraRotation {
   }, []);
 
   const settle = useCallback(() => {
-    const target = nearestStory(angleRef.current);
+    const target = nearestStop(angleRef.current, stops);
     const from = angleRef.current;
-    const delta = shortestDelta(from, myths[target].angle);
+    const delta = shortestDelta(from, target.angle);
 
     const finish = () => {
-      commitAngle(myths[target].angle);
-      setStory(target);
+      commitAngle(target.angle);
+      setStory(target.key);
       setIsSpinning(false);
     };
 
@@ -94,7 +95,9 @@ export function useAmphoraRotation(): AmphoraRotation {
     };
 
     frameRef.current = requestAnimationFrame(step);
-  }, [commitAngle]);
+    // `stops` changes only when the week does; the 3D viewer is memoised on
+    // props that do not come from here, so re-creating these callbacks is free.
+  }, [commitAngle, stops]);
 
   const glide = useCallback(() => {
     cancelAnimation();

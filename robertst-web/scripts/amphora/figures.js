@@ -237,4 +237,24 @@ const icarus = [
   { k: "stroke", pts: [[-0.130, 0.882], [-0.068, 0.906]], w: 0.011, taper: 0, c: "red" },
 ];
 
-module.exports = { prometheus, medusa, icarus };
+// --- Veiled: what a sealed slot carries ------------------------------------
+// A shrouded standing form. Used where a myth in the week has no scene painted
+// for it yet, so the frieze still reads as five figures rather than as a gap.
+// Deliberately unreadable: it is a covered thing, not a censored one.
+const veiled = [
+  { k: "poly", pts: [
+    [-0.026, 1.104], [0.026, 1.104], [0.086, 1.060], [0.124, 0.964],
+    [0.152, 0.788], [0.174, 0.560], [0.202, 0.286], [0.222, 0.034],
+    [-0.222, 0.034], [-0.202, 0.286], [-0.174, 0.560], [-0.152, 0.788],
+    [-0.124, 0.964], [-0.086, 1.060],
+  ], c: "glaze" },
+  // the fillet at the crown, and folds falling from it
+  { k: "stroke", pts: [[-0.098, 1.020], [0.098, 1.020]], w: 0.016, taper: 0, c: "clay" },
+  { k: "stroke", pts: [[-0.062, 1.006], [-0.104, 0.720], [-0.140, 0.300]], w: 0.011, taper: 0, c: "clay" },
+  { k: "stroke", pts: [[0.000, 1.010], [0.004, 0.700], [0.000, 0.290]], w: 0.011, taper: 0, c: "clay" },
+  { k: "stroke", pts: [[0.062, 1.006], [0.104, 0.720], [0.140, 0.300]], w: 0.011, taper: 0, c: "clay" },
+  { k: "stroke", pts: [[-0.186, 0.430], [0.186, 0.424]], w: 0.011, taper: 0, c: "clay" },
+  { k: "stroke", pts: [[-0.208, 0.180], [0.208, 0.176]], w: 0.011, taper: 0, c: "clay" },
+];
+
+module.exports = { prometheus, medusa, icarus, veiled };
