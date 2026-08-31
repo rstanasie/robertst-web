@@ -18,6 +18,7 @@ const fs = require("fs");
 const path = require("path");
 const S = require("./shared.js");
 const FIGURES = require("./figures.js");
+const { loadFigure, sample } = require("./figure-image.js");
 
 const [, , OUT_DIR, LAYOUT_PATH, PANELS_PATH] = process.argv;
 const layout = JSON.parse(fs.readFileSync(LAYOUT_PATH, "utf8"));
@@ -217,10 +218,12 @@ encircle(V.footTop - 0.0090, 0.0026, RED);
 // --- figure placement ------------------------------------------------------
 // Centres come straight from the UV contract: a myth at amphora angle A is
 // painted at u = ((180 - A) / 360) mod 1.
+const ROOT = path.join(__dirname, "..", "..");
 const PANELS = JSON.parse(fs.readFileSync(PANELS_PATH, "utf8")).map((panel) => ({
   key: panel.key,
   access: panel.access,
   u: (((180 - panel.angle) / 360) % 1 + 1) % 1,
+  stencil: panel.figure ? loadFigure(path.join(ROOT, panel.figure)) : null,
   ops: FIGURES[panel.key] ?? (panel.access === "locked" ? FIGURES.veiled : null),
 }));
 const SLOT_U = 1 / PANELS.length;
@@ -252,10 +255,10 @@ const panelRealHeight = ((V.panelBottom - V.panelTop) * SH) / pxV;
 const groundV = V.panelBottom - 0.020;
 
 for (const panel of PANELS) {
-  if (!panel.ops) {
+  if (!panel.stencil && !panel.ops) {
     throw new Error(
-      `no figure authored for "${panel.key}" in scripts/amphora/figures.js. ` +
-        `A sealed slot falls back to the veiled form, but a readable one has to be drawn.`,
+      `nothing to paint for "${panel.key}". Put a drawing at ` +
+        `content/myths/${panel.key}/figure.png, or author a scene in scripts/amphora/figures.js.`,
     );
   }
 }
@@ -264,7 +267,7 @@ for (const panel of PANELS) {
 // at — and narrow enough that the widest of them fits its share of the belly.
 // With five slots instead of three, width is the binding constraint, not height.
 const slotRealWidth = (layout.bellyCircumference ?? 2 * Math.PI * layout.maxRadius) * SLOT_U;
-const widest = Math.max(...PANELS.map((panel) => { const b = bbox(panel.ops); return b.maxX - b.minX; }));
+const widest = Math.max(...PANELS.map((panel) => { const b = bbox(panel.ops ?? FIGURES.veiled); return b.maxX - b.minX; }));
 const FIGURE_UNIT = Math.min(
   (panelRealHeight * FIGURE_FILL) / FIGURE_TOP,
   (slotRealWidth * FIGURE_SPAN) / widest,
@@ -279,10 +282,41 @@ console.log(
 const sealedRects = [];
 const crisp = new Uint8Array(SW * SH);
 
+const slotRealWidthCap = slotRealWidth * FIGURE_SPAN;
+
 for (const panel of PANELS) {
+  const sx = pxUAt(0.5 * (V.panelTop + V.panelBottom));
+
+  if (panel.stencil) {
+    // Real units first, then into texels, because a texel is not square on the
+    // belly: the sheet is stretched about 1.5x horizontally at the widest point.
+    const st = panel.stencil;
+    let realH = panelRealHeight * FIGURE_FILL;
+    let realW = realH * (st.w / st.h);
+    if (realW > slotRealWidthCap) {
+      realH *= slotRealWidthCap / realW;
+      realW = slotRealWidthCap;
+    }
+    const drawW = realW * sx;
+    const drawH = realH * pxV;
+    const left = X(panel.u) - drawW / 2;
+    const bottom = Y(groundV);
+
+    for (let y = Math.floor(bottom - drawH); y < Math.ceil(bottom); y++) {
+      const v = (y + 0.5 - (bottom - drawH)) / drawH;
+      if (v < 0 || v >= 1) continue;
+      for (let x = Math.floor(left); x < Math.ceil(left + drawW); x++) {
+        const u = (x + 0.5 - left) / drawW;
+        if (u < 0 || u >= 1) continue;
+        if (sample(st.figure, st.w, st.h, u, v) > 0.5) put(x, y, GLAZE);
+        else if (sample(st.incision, st.w, st.h, u, v) > 0.5) put(x, y, CLAY);
+      }
+    }
+    continue;
+  }
+
   const box = bbox(panel.ops);
   const unit = FIGURE_UNIT;
-  const sx = pxUAt(0.5 * (V.panelTop + V.panelBottom));
   const cx = X(panel.u) - ((box.minX + box.maxX) / 2) * unit * sx;
   const baseY = Y(groundV);
 

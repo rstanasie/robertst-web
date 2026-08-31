@@ -257,4 +257,107 @@ const veiled = [
   { k: "stroke", pts: [[-0.208, 0.180], [0.208, 0.176]], w: 0.011, taper: 0, c: "clay" },
 ];
 
-module.exports = { prometheus, medusa, icarus, veiled };
+// --- Dionysos: the god standing with the cup and the thyrsus ----------------
+// Frontal torso, head in profile toward the cup, as archaic painters drew him.
+// The two attributes carry the whole silhouette at frieze size: a kantharos held
+// out on one side, a thyrsus taller than the god on the other.
+
+// Ivy leaf: a pointed heart on a short stalk, `tilt` radians off horizontal.
+// Drawn as one outline with a single incised midrib. A five-lobed outline loses
+// its notches at frieze size and comes out as an arrowhead; a leaf assembled
+// from discs comes out as a cloud. The silhouette has to do the work.
+function ivyLeaf(x, y, size, side, tilt = 0) {
+  const c = Math.cos(tilt);
+  const t = Math.sin(tilt);
+  const at = ([sx, sy]) => [x + side * (sx * c - sy * t) * size, y + (sx * t + sy * c) * size];
+  return [
+    { k: "stroke", pts: [at([0, 0]), at([0.24, 0])], w: 0.03 * size, taper: 0, c: "glaze" },
+    { k: "poly", pts: [
+      [0.08, 0.02], [0.22, 0.34], [0.48, 0.44], [0.74, 0.30],
+      [1.02, 0.02], [0.72, -0.26], [0.46, -0.40], [0.20, -0.30],
+    ].map(at), c: "glaze" },
+    { k: "stroke", pts: [at([0.26, 0.01]), at([0.90, 0.02])], w: 0.06 * size, taper: 0, c: "clay" },
+  ];
+}
+
+const dionysos = [
+  // thyrsus, behind the figure
+  { k: "stroke", pts: [[0.290, 0.020], [0.302, 0.580], [0.314, 1.086]], w: 0.028, taper: 0, c: "glaze" },
+  // pine-cone finial: an elongated cone, latticed
+  { k: "poly", pts: [
+    [0.314, 1.222], [0.360, 1.170], [0.368, 1.116], [0.336, 1.076],
+    [0.292, 1.076], [0.260, 1.116], [0.268, 1.170],
+  ], c: "glaze" },
+  { k: "stroke", pts: [[0.276, 1.104], [0.352, 1.156]], w: 0.009, taper: 0, c: "clay" },
+  { k: "stroke", pts: [[0.272, 1.142], [0.340, 1.186]], w: 0.009, taper: 0, c: "clay" },
+  { k: "stroke", pts: [[0.352, 1.104], [0.276, 1.156]], w: 0.009, taper: 0, c: "clay" },
+  { k: "stroke", pts: [[0.356, 1.142], [0.288, 1.186]], w: 0.009, taper: 0, c: "clay" },
+  // vine on the shaft, alternating sides
+  ...ivyLeaf(0.300, 0.352, 0.130, 1, 0.55),
+  ...ivyLeaf(0.296, 0.606, 0.124, -1, 0.55),
+  ...ivyLeaf(0.306, 0.828, 0.130, 1, 0.55),
+  ...ivyLeaf(0.310, 0.982, 0.114, -1, 0.55),
+
+  // legs
+  limb([[-0.056, 0.396], [-0.080, 0.216], [-0.074, 0.050]], 0.080, 0.24),
+  { k: "poly", pts: [[-0.112, 0.056], [0.008, 0.038], [0.012, 0.000], [-0.120, 0.004]], c: "glaze" },
+  limb([[0.064, 0.396], [0.092, 0.216], [0.106, 0.050]], 0.080, 0.24),
+  { k: "poly", pts: [[0.070, 0.056], [0.190, 0.038], [0.194, 0.000], [0.062, 0.004]], c: "glaze" },
+
+  // short draped skirt, gathered at the hip. Folds only — a cross line here
+  // turns the drapery into a grid.
+  { k: "poly", pts: [
+    [-0.152, 0.578], [0.152, 0.578], [0.186, 0.428], [0.160, 0.348],
+    [0.048, 0.374], [-0.048, 0.352], [-0.162, 0.374], [-0.186, 0.428],
+  ], c: "glaze" },
+  { k: "stroke", pts: [[-0.148, 0.588], [0.148, 0.588]], w: 0.020, taper: 0, c: "red" },
+  { k: "stroke", pts: [[-0.092, 0.564], [-0.116, 0.386]], w: 0.011, taper: 0, c: "clay" },
+  { k: "stroke", pts: [[-0.014, 0.564], [-0.018, 0.368]], w: 0.011, taper: 0, c: "clay" },
+  { k: "stroke", pts: [[0.064, 0.564], [0.086, 0.386]], w: 0.011, taper: 0, c: "clay" },
+
+  // torso, frontal. Collarbone and the line under the chest, nothing else.
+  { k: "poly", pts: [
+    [-0.146, 0.828], [0.146, 0.828], [0.166, 0.756], [0.134, 0.660],
+    [0.140, 0.572], [-0.140, 0.572], [-0.134, 0.660], [-0.166, 0.756],
+  ], c: "glaze" },
+  { k: "stroke", pts: [[-0.118, 0.802], [0.000, 0.780], [0.118, 0.802]], w: 0.012, taper: 0, c: "clay" },
+  { k: "stroke", pts: [[-0.108, 0.706], [0.000, 0.692], [0.108, 0.706]], w: 0.012, taper: 0, c: "clay" },
+  { k: "ell", c: [0.000, 0.622], r: [0.012, 0.010], col: "clay" },
+
+  // arm out to the cup
+  limb([[-0.140, 0.798], [-0.240, 0.780], [-0.312, 0.762]], 0.056, 0.28),
+  { k: "ell", c: [-0.332, 0.756], r: [0.030, 0.029], col: "glaze" },
+  // kantharos: deep bowl, tall foot, two loop handles standing above the rim
+  { k: "poly", pts: [[-0.440, 0.830], [-0.324, 0.830], [-0.338, 0.768], [-0.426, 0.768]], c: "glaze" },
+  { k: "stroke", pts: [[-0.382, 0.772], [-0.382, 0.744]], w: 0.022, taper: 0, c: "glaze" },
+  { k: "poly", pts: [[-0.422, 0.744], [-0.342, 0.744], [-0.336, 0.726], [-0.428, 0.726]], c: "glaze" },
+  { k: "stroke", pts: [[-0.438, 0.826], [-0.462, 0.842], [-0.460, 0.792], [-0.430, 0.776]], w: 0.013, taper: 0, c: "glaze" },
+  { k: "stroke", pts: [[-0.326, 0.826], [-0.294, 0.842], [-0.296, 0.792], [-0.334, 0.776]], w: 0.013, taper: 0, c: "glaze" },
+  { k: "stroke", pts: [[-0.434, 0.820], [-0.330, 0.820]], w: 0.012, taper: 0, c: "red" },
+
+  // arm down, gripping the shaft
+  limb([[0.140, 0.798], [0.226, 0.716], [0.274, 0.640]], 0.056, 0.28),
+  { k: "ell", c: [0.296, 0.612], r: [0.030, 0.029], col: "glaze" },
+
+  // Head in profile toward the cup. Head and beard are one silhouette, the way
+  // archaic painters cut them, with the jaw marked by an incision — drawing the
+  // beard as a second shape on top of the face turns the whole head into a blob.
+  { k: "poly", pts: [
+    [0.046, 0.846], [0.060, 0.906], [0.054, 0.958], [0.028, 1.000],
+    [-0.016, 1.024], [-0.060, 1.008], [-0.084, 0.980], [-0.098, 0.960],
+    [-0.134, 0.934], [-0.096, 0.924], [-0.086, 0.910], [-0.096, 0.884],
+    [-0.088, 0.842], [-0.060, 0.802], [-0.026, 0.788], [0.010, 0.808],
+  ], c: "glaze" },
+  { k: "stroke", pts: [[0.040, 0.890], [-0.026, 0.900], [-0.086, 0.904]], w: 0.010, taper: 0, c: "clay" },
+  { k: "ell", c: [-0.050, 0.964], r: [0.022, 0.015], col: "clay" },
+  { k: "ell", c: [-0.056, 0.964], r: [0.008, 0.008], col: "glaze" },
+  // ivy wreath: a red fillet across the brow, three leaves and two berries
+  { k: "stroke", pts: [[-0.090, 0.982], [-0.010, 1.002], [0.050, 0.980]], w: 0.015, taper: 0, c: "red" },
+  ...ivyLeaf(-0.078, 0.994, 0.068, -1, 0.35),
+  ...ivyLeaf(-0.012, 1.012, 0.068, 1, 0.95),
+  ...ivyLeaf(0.042, 0.990, 0.064, 1, 0.2),
+  { k: "ell", c: [-0.044, 1.006], r: [0.011, 0.011], col: "red" },
+  { k: "ell", c: [0.022, 0.998], r: [0.010, 0.010], col: "red" },
+];
+
+module.exports = { prometheus, medusa, icarus, veiled, dionysos };

@@ -10,11 +10,12 @@
       "access": "preview"
     },
     {
-      "key": "medusa",
-      "name": "Medusa",
+      "key": "dionysos",
+      "name": "Dionysos",
       "angle": 108,
       "slot": 1,
-      "access": "preview"
+      "access": "preview",
+      "figure": "content/myths/dionysos/figure.png"
     },
     {
       "key": "icarus",

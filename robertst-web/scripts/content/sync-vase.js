@@ -26,13 +26,21 @@ if (panels.length !== angles.length) {
 const file = {
   _generated: `npm run content:sync from content/weeks/${week.week}.json — do not edit`,
   week: week.week,
-  panels: panels.map((entry) => ({
-    key: entry.mythSlug,
-    name: C.readMyth(entry.mythSlug).title,
-    angle: angles[entry.vaseSlot],
-    slot: entry.vaseSlot,
-    access: entry.access,
-  })),
+  panels: panels.map((entry) => {
+    // A drawing next to the story wins over a scene hand-authored in
+    // figures.js. This is the whole point of the weekly workflow: draw it,
+    // drop it in, and the vessel carries it.
+    const drawing = path.join("content", "myths", entry.mythSlug, "figure.png");
+    const hasDrawing = fs.existsSync(path.join(C.root, drawing));
+    return {
+      key: entry.mythSlug,
+      name: C.readMyth(entry.mythSlug).title,
+      angle: angles[entry.vaseSlot],
+      slot: entry.vaseSlot,
+      access: entry.access,
+      ...(hasDrawing ? { figure: drawing } : {}),
+    };
+  }),
 };
 
 fs.writeFileSync(path.join(C.root, "data/vase-panels.json"), `${JSON.stringify(file, null, 2)}\n`);
