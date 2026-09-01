@@ -251,7 +251,7 @@ body:has(.myth-backdrop) header a:hover {
   font-size: clamp(2rem, min(7vw, 6.2svh), 4.25rem);
   font-weight: 400;
   line-height: 1.04;
-  letter-spacing: 0.005em;
+  letter-spacing: 0.012em;
   color: var(--ink);
   text-wrap: balance;
 }
@@ -301,15 +301,109 @@ body:has(.myth-backdrop) header a:hover {
   /* Below this the vessel stops being the hero; a short window may scroll
      instead. */
   min-height: 13rem;
+  /* The object is the only interactive thing on the page and nothing tells you
+     so, which means the affordance has to be entirely in how it behaves: it
+     drifts while it is left alone, gathers warmth as the cursor arrives, and
+     goes still the moment a hand is on it. */
+  animation: myth-adrift 11s ease-in-out infinite;
 }
 
-/* The page's own lead, not the paragraphs inside the amphora section. */
-.myth-stage > p {
-  max-width: 32ch;
+/* Lamplight under the clay, not a glow around it: the gradient sits low and
+   wide so it reads as the vessel standing in warm light rather than as a
+   selected element. Painted by ::before, which precedes the viewer in paint
+   order, so no z-index is needed to keep it behind. */
+.myth-stage [data-amphora="stage"]::before {
+  content: "";
+  position: absolute;
+  inset: 10% -18% -8%;
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse 50% 44% at 50% 64%,
+    rgba(196, 151, 93, 0.22) 0%,
+    rgba(184, 94, 53, 0.11) 44%,
+    rgba(196, 151, 93, 0) 76%
+  );
+  opacity: 0.6;
+  transition: opacity 480ms ease, transform 480ms ease;
+}
+
+.myth-stage [data-amphora="stage"]:hover::before,
+.myth-stage [data-amphora="stage"]:focus-visible::before {
+  opacity: 0.92;
+  transform: scale(1.04);
+}
+
+.myth-stage [data-amphora="stage"][data-holding]::before {
+  opacity: 1;
+  transform: scale(1.07);
+  transition-duration: 180ms;
+}
+
+/* A hand on the clay steadies it. Pausing rather than resetting is the point —
+   it stops where it was, the way a real object would. */
+.myth-stage [data-amphora="stage"][data-holding] {
+  animation-play-state: paused;
+}
+
+/* The handles, and nothing else. Transparent: the only sign they are there is
+   that the cursor changes over them and not over the clay, which is the whole
+   of the instruction the page gives. Positioned in percentages of the stage, so
+   they hold their place as the vessel is scaled. touch-action is set here
+   rather than on the stage so a thumb on the body still scrolls the page. */
+.myth-stage [data-amphora="handle"] {
+  position: absolute;
+  touch-action: none;
+  cursor: grab;
+}
+
+.myth-stage [data-amphora="handle"][data-occluded] {
+  pointer-events: none;
+}
+
+.myth-stage [data-amphora="stage"][data-holding] [data-amphora="handle"] {
+  cursor: grabbing;
+}
+
+@keyframes myth-adrift {
+  0%,
+  100% {
+    transform: translate3d(0, 0.25rem, 0);
+  }
+  50% {
+    transform: translate3d(0, -0.25rem, 0);
+  }
+}
+
+/* Above the title: an epigraph, not a kicker. Set in the display face rather
+   than tracked-out uppercase, because letter-spaced capitals turn any sentence
+   into a masthead line and that is the one thing this line must not sound like.
+   Roman here against the italic invitation below the title, so the two lines
+   bracketing it read as different voices rather than a matched pair. */
+.myth-stage > [data-stage="eyebrow"] {
+  /* Wide enough for the line to stand whole where there is room; below that it
+     breaks into two even lines rather than one long and one short. */
+  max-width: 48ch;
   font-family: var(--myth-display);
+  font-size: clamp(0.75rem, min(1.9vw, 1.7svh), 0.8125rem);
+  line-height: 1.5;
+  letter-spacing: 0.02em;
+  /* Measured 6.0 against the navy. */
+  color: rgba(216, 203, 184, 0.72);
+  text-wrap: balance;
+}
+
+/* The invitation. Italic and set in the display face so it reads as an aside in
+   the author's voice — this is the only line asking anything of the reader, and
+   it asks by inviting rather than instructing. */
+.myth-stage > [data-stage="lead"] {
+  max-width: 26rem;
+  font-family: var(--myth-display);
+  font-style: italic;
   font-size: clamp(1rem, min(2.4vw, 2.2svh), 1.1875rem);
   line-height: 1.6;
-  letter-spacing: 0.005em;
+  letter-spacing: 0.01em;
+  color: rgba(242, 233, 219, 0.78);
+  text-wrap: balance;
 }
 
 /* Amphora renders its own <h2>The Amphora</h2>, which repeats the page title.
@@ -323,37 +417,6 @@ body:has(.myth-backdrop) header a:hover {
   overflow: hidden;
   clip-path: inset(50%);
   white-space: nowrap;
-}
-
-/* the drag hint */
-.myth-stage [data-amphora="hint"] {
-  font-family: var(--myth-utility);
-  font-size: 0.6875rem;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-}
-
-.myth-stage button {
-  font-family: var(--myth-utility);
-  font-size: 0.75rem;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--myth-ink);
-  padding: 0.8125rem 1.75rem;
-  border: 1px solid rgba(196, 151, 93, 0.55);
-  border-radius: 999px;
-  background: transparent;
-  transition: border-color 160ms ease, background-color 160ms ease, color 160ms ease;
-}
-
-.myth-stage button:hover:not(:disabled) {
-  border-color: var(--myth-gold);
-  background: var(--myth-gold);
-  color: var(--myth-navy);
-}
-
-.myth-stage button:disabled {
-  cursor: default;
 }
 
 .myth-stage a {
@@ -372,23 +435,158 @@ body:has(.myth-backdrop) header a:hover {
   outline-offset: 3px;
 }
 
-/* Reserved so filling it never reflows the column. Amphora's own `min-h-28` is
-   not enough once the text is set in the display face. `max-width` caps the
-   line length, so the tallest state is 101px from 375px up — measured across
-   every myth in the week, not guessed. Re-measure when teasers change: a teaser
-   that wraps one line further than the reserve makes the whole column jump. */
-.myth-stage [role="status"] {
+/* The vessel's own focus state. A 2px system outline around a box this large
+   reads as an error box; a hairline set off from the edge reads as the border
+   painted round a panel on the vase itself. Measured 4.9 against the navy, so
+   it is still an indicator and not just a decoration. */
+.myth-stage [data-amphora="stage"]:focus-visible {
+  outline: 1.5px solid rgba(196, 151, 93, 0.85);
+  outline-offset: 0.625rem;
+  border-radius: 2px;
+}
+
+/* What the vessel turned up. Reserved height, and content centred inside the
+   reserve, so filling it never reflows the column — that reflow is what read as
+   the page zooming when a spin ended. `max-width` caps the line length, so the
+   reserve only has to cover the tallest state, measured across every myth in
+   the week and both access states rather than guessed. Re-measure when teasers
+   change: one extra wrapped line makes the whole column jump.
+
+   Measured over all five myths x 10 widths: 136px at 375-414px, 145px from
+   768px up (the name is clamped against the viewport, so it grows), and 157px
+   at 320px where a sealed teaser takes a third line under the state label. */
+.myth-stage [data-amphora="reveal"] {
+  position: relative;
   font-family: var(--myth-display);
-  min-height: 6.75rem;
+  min-height: 9.25rem;
   max-width: 40ch;
-  gap: 0.25rem;
   line-height: 1.45;
 }
 
-.myth-stage [role="status"] strong {
-  font-weight: 400;
-  letter-spacing: 0.02em;
+/* Keyed on the myth slug in Amphora, so each new story genuinely re-mounts and
+   surfaces rather than swapping its text in place.
+
+   `backwards` rather than `both`: an animation filled forwards keeps applying
+   its end state for good, and would outrank the opacity the refusal note fades
+   these down to. Backwards fills only the delay, which is all that is wanted. */
+.myth-stage [data-amphora="reveal"] > *:not([data-amphora="refusal"]) {
+  animation: myth-surface 520ms cubic-bezier(0.22, 0.61, 0.36, 1) backwards;
+  transition: opacity 240ms ease;
+}
+
+@keyframes myth-surface {
+  from {
+    opacity: 0;
+    transform: translateY(0.4rem);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Only sealed stories carry a state line, so the label is the exception and the
+   name is the rule — no permanent badge slot that has to say something. */
+.myth-stage [data-amphora="state"] {
+  margin-bottom: 0.4rem;
+  font-family: var(--myth-utility);
+  font-size: 0.625rem;
+  letter-spacing: 0.26em;
+  text-indent: 0.26em;
+  text-transform: uppercase;
+  color: rgba(216, 203, 184, 0.62);
+}
+
+.myth-stage [data-amphora="name"] {
+  font-size: clamp(1.375rem, min(4.6vw, 3.4svh), 1.875rem);
+  line-height: 1.16;
+  letter-spacing: 0.012em;
   color: var(--ink);
+  text-wrap: balance;
+}
+
+.myth-stage [data-amphora="teaser"] {
+  max-width: 34ch;
+  margin-top: 0.45rem;
+  font-size: 0.9375rem;
+  line-height: 1.55;
+  color: rgba(216, 203, 184, 0.88);
+  animation-delay: 70ms;
+}
+
+.myth-stage [data-amphora="open"] {
+  margin-top: 0.7rem;
+  font-size: 0.9375rem;
+  animation-delay: 140ms;
+}
+
+/* The vessel's answer to a gesture that fell short. It takes the same place the
+   myth is given rather than a slot of its own, so nothing on the page moves:
+   the answer always arrives in one spot, and this is simply a different answer.
+   The myth underneath is faded rather than unmounted and comes back by itself. */
+.myth-stage [data-amphora="reveal"][data-refused] > *:not([data-amphora="refusal"]) {
+  opacity: 0;
+}
+
+.myth-stage [data-amphora="refusal"] {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  font-style: italic;
+  font-size: clamp(1.0625rem, min(3.4vw, 2.6svh), 1.25rem);
+  letter-spacing: 0.01em;
+  color: rgba(242, 233, 219, 0.82);
+  /* Duration is set inline from REFUSAL_NOTE_MS, so the fade cannot outlast the
+     note or leave it hanging at full strength. */
+  animation: myth-refusal ease both;
+}
+
+@keyframes myth-refusal {
+  0% {
+    opacity: 0;
+    transform: translateY(0.3rem);
+  }
+  14%,
+  76% {
+    opacity: 1;
+    transform: none;
+  }
+  100% {
+    opacity: 0;
+    transform: none;
+  }
+}
+
+/* Before the first turn: a fleuron, the ornament a printer sets in a blank.
+   It reads as deliberately empty rather than as unfinished, and it asks the
+   reader for nothing. Not hung off the vessel — the model is framed with room
+   under its foot, so anything vertical would read as a stray tick. */
+.myth-stage [data-amphora="rest"] {
+  position: relative;
+  display: block;
+  width: 7.5rem;
+  height: 0.5rem;
+  background: linear-gradient(
+      to right,
+      transparent,
+      rgba(196, 151, 93, 0.42) 24%,
+      rgba(196, 151, 93, 0.42) 76%,
+      transparent
+    )
+    center / 100% 1px no-repeat;
+}
+
+.myth-stage [data-amphora="rest"]::after {
+  content: "";
+  position: absolute;
+  inset: 50% auto auto 50%;
+  width: 0.3125rem;
+  height: 0.3125rem;
+  transform: translate(-50%, -50%) rotate(45deg);
+  background: var(--myth-terracotta);
+  opacity: 0.85;
 }
 
 .myth-stage [data-amphora="index"] {
@@ -399,9 +597,6 @@ body:has(.myth-backdrop) header a:hover {
   color: rgba(216, 203, 184, 0.6);
 }
 
-.myth-stage [data-amphora="index"] ul {
-  margin-top: 0.75rem;
-}
 
 /* Muted beige at rest so the list reads as one quiet line under the vessel,
    and gold for whichever myth the amphora has settled on. */
@@ -450,17 +645,44 @@ body:has(.myth-backdrop) header a:hover {
   white-space: nowrap;
 }
 
-/* Under ~360px the longest teasers take a third line and 6.75rem is short. */
+/* Under ~360px the longest teasers take a third line, which is both a taller
+   reserve and a worse line length, so the teaser steps down a size and the
+   reserve is measured again against that. */
 @media (max-width: 22.5rem) {
-  .myth-stage [role="status"] {
-    min-height: 8rem;
+  .myth-stage [data-amphora="teaser"] {
+    font-size: 0.875rem;
+  }
+
+  .myth-stage [data-amphora="reveal"] {
+    min-height: 8.75rem;
+  }
+}
+
+/* A short window has to take the shortfall out of somewhere, and the vessel is
+   the element allowed to give ground. Lowering the floor only bites where the
+   content genuinely does not fit — where flex already hands the vessel more
+   than the floor, this changes nothing. */
+@media (max-height: 43rem) {
+  .myth-stage [data-amphora="stage"] {
+    min-height: 10rem;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .myth-stage button,
   .myth-stage a {
     transition: none;
+  }
+
+  .myth-stage [data-amphora="stage"],
+  .myth-stage [data-amphora="stage"]::before,
+  .myth-stage [data-amphora="reveal"] > * {
+    animation: none;
+    transition: none;
+  }
+
+  /* The note still appears and goes; it just does so without the fade. */
+  .myth-stage [data-amphora="refusal"] {
+    animation: none;
   }
 }
 

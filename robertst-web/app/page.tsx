@@ -15,9 +15,11 @@ export default async function Home() {
       <MythBackdrop />
 
       <main className="myth-stage">
-        <h1>The Amphora</h1>
+        <p data-stage="eyebrow">Our oldest stories, from an unknown beginning.</p>
 
-        <p>Five myths a week. Spin the amphora and let the gods choose your story.</p>
+        <h1>Greek Myths</h1>
+
+        <p data-stage="lead">Grab the amphora.</p>
 
         <Amphora week={view} />
       </main>
