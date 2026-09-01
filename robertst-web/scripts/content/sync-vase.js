@@ -32,13 +32,16 @@ const file = {
     // drop it in, and the vessel carries it.
     const drawing = path.join("content", "myths", entry.mythSlug, "figure.png");
     const hasDrawing = fs.existsSync(path.join(C.root, drawing));
+    const meta = C.readMyth(entry.mythSlug);
     return {
       key: entry.mythSlug,
-      name: C.readMyth(entry.mythSlug).title,
+      name: meta.title,
       angle: angles[entry.vaseSlot],
       slot: entry.vaseSlot,
       access: entry.access,
       ...(hasDrawing ? { figure: drawing } : {}),
+      // A figure that never touches the ground is not stood on the ground line.
+      ...(meta.airborne ? { airborne: true } : {}),
     };
   }),
 };

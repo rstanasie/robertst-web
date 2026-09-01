@@ -222,11 +222,15 @@ const ROOT = path.join(__dirname, "..", "..");
 const PANELS = JSON.parse(fs.readFileSync(PANELS_PATH, "utf8")).map((panel) => ({
   key: panel.key,
   access: panel.access,
+  airborne: Boolean(panel.airborne),
   u: (((180 - panel.angle) / 360) % 1 + 1) % 1,
   stencil: panel.figure ? loadFigure(path.join(ROOT, panel.figure)) : null,
   ops: FIGURES[panel.key] ?? (panel.access === "locked" ? FIGURES.veiled : null),
 }));
 const SLOT_U = 1 / PANELS.length;
+/** Half-width of a sealed panel's blur, in slots. Also the edge a wide figure
+    beside one must stay clear of, so it is declared once for both. */
+const SEALED_HALF = 0.46;
 
 // --- figural scenes --------------------------------------------------------
 function bbox(ops) {
@@ -284,7 +288,30 @@ const crisp = new Uint8Array(SW * SH);
 
 const slotRealWidthCap = slotRealWidth * FIGURE_SPAN;
 
-for (const panel of PANELS) {
+// A figure with its wings spread is wide and, held to the width every other
+// figure is cut to, ends up half their height — small enough on the belly to
+// read as a mistake. So it is allowed to spill into the field either side, as
+// far as its actual neighbours leave free.
+//
+// What a neighbour occupies is not the same for all of them. A painted one
+// takes its own figure width. A sealed one is blurred across 0.46 of a slot
+// either side of its centre, and a wingtip caught in that blur would look like
+// a fault in the render, so the blur is the edge that counts. Derived from the
+// week rather than fixed, so it follows the collection: if Orpheus is a
+// preview next week, Icarus gets the room back.
+const NEIGHBOUR_GAP = 0.02; // of a slot, kept clear either side
+
+function spreadAllowance(index) {
+  let half = Infinity;
+  for (const step of [-1, 1]) {
+    const neighbour = PANELS[(index + step + PANELS.length) % PANELS.length];
+    const theirs = neighbour.access === "locked" ? SEALED_HALF : FIGURE_SPAN / 2;
+    half = Math.min(half, 1 - theirs - NEIGHBOUR_GAP);
+  }
+  return Math.max(FIGURE_SPAN, 2 * half) * slotRealWidth;
+}
+
+for (const [index, panel] of PANELS.entries()) {
   const sx = pxUAt(0.5 * (V.panelTop + V.panelBottom));
 
   if (panel.stencil) {
@@ -293,14 +320,28 @@ for (const panel of PANELS) {
     const st = panel.stencil;
     let realH = panelRealHeight * FIGURE_FILL;
     let realW = realH * (st.w / st.h);
-    if (realW > slotRealWidthCap) {
-      realH *= slotRealWidthCap / realW;
-      realW = slotRealWidthCap;
+    const cap = panel.airborne ? spreadAllowance(index) : slotRealWidthCap;
+    if (realW > cap) {
+      realH *= cap / realW;
+      realW = cap;
     }
+    console.log(
+      `  ${panel.key}: ${realW.toFixed(4)} x ${realH.toFixed(4)}` +
+        ` (${((100 * realH) / (panelRealHeight * FIGURE_FILL)).toFixed(0)}% of the panel height` +
+        `, ${((100 * realW) / slotRealWidth).toFixed(0)}% of a slot)`,
+    );
+
     const drawW = realW * sx;
     const drawH = realH * pxV;
     const left = X(panel.u) - drawW / 2;
-    const bottom = Y(groundV);
+    // A wide figure is a short one, since the slot caps its width, and standing
+    // that on the ground line leaves a band of empty clay over its head. For a
+    // figure that flies the empty clay is the sky, so it is split above and
+    // below and the figure floats in the middle of the panel instead.
+    const maxDrawH = panelRealHeight * FIGURE_FILL * pxV;
+    const bottom = panel.airborne
+      ? Y(groundV) - (maxDrawH - drawH) / 2
+      : Y(groundV);
 
     for (let y = Math.floor(bottom - drawH); y < Math.ceil(bottom); y++) {
       const v = (y + 0.5 - (bottom - drawH)) / drawH;
@@ -366,8 +407,8 @@ for (const panel of PANELS) {
     }
 
     sealedRects.push({
-      x0: Math.max(0, Math.floor((cx - SLOT_U * SW * 0.46) / SS)),
-      x1: Math.min(W, Math.ceil((cx + SLOT_U * SW * 0.46) / SS)),
+      x0: Math.max(0, Math.floor((cx - SLOT_U * SW * SEALED_HALF) / SS)),
+      x1: Math.min(W, Math.ceil((cx + SLOT_U * SW * SEALED_HALF) / SS)),
       y0: Math.max(0, Math.floor(Y(V.panelTop) / SS)),
       y1: Math.min(H, Math.ceil(Y(V.panelBottom) / SS)),
     });

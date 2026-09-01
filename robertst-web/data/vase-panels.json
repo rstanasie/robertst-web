@@ -22,7 +22,9 @@
       "name": "Icarus",
       "angle": 180,
       "slot": 2,
-      "access": "preview"
+      "access": "preview",
+      "figure": "content/myths/icarus/figure.png",
+      "airborne": true
     },
     {
       "key": "orpheus",

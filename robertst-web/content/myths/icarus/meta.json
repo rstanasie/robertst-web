@@ -1,5 +1,6 @@
 {
   "id": "myth_icarus",
   "slug": "icarus",
-  "title": "Icarus"
+  "title": "Icarus",
+  "airborne": true
 }
