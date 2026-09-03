@@ -5,7 +5,7 @@
 //   node scripts/amphora/prepare-figure.js <scene.png> <slug> [seeds]
 //   node scripts/amphora/prepare-figure.js icarus-ref.png icarus '[[150,250],[60,470]]'
 //
-// Writes content/myths/<slug>/figure.png, which `npm run content:sync` then
+// Writes content/figures/<slug>.png, which `npm run content:sync` then
 // picks up. Use it when the artwork is a picture rather than a figure — a
 // figure already alone on a plain ground needs none of this and can be dropped
 // straight in.
@@ -37,10 +37,8 @@ if (!SRC || !SLUG) {
 }
 
 const ROOT = path.join(__dirname, "..", "..");
-const OUT = path.join(ROOT, "content", "myths", SLUG, "figure.png");
-if (!fs.existsSync(path.dirname(OUT))) {
-  throw new Error(`no such myth: content/myths/${SLUG}`);
-}
+const OUT = path.join(ROOT, "content", "figures", `${SLUG}.png`);
+fs.mkdirSync(path.dirname(OUT), { recursive: true });
 
 // Turns the reference scene into a figure the amphora importer can read.
 //
@@ -304,5 +302,5 @@ for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (figure[y * w + x]) {
 if (maxX < 0) throw new Error("nothing survived — check the seeds against the scene");
 console.log(
   `  figure ${maxX - minX + 1}x${maxY - minY + 1}, aspect ${((maxX - minX + 1) / (maxY - minY + 1)).toFixed(2)}` +
-    `  ->  content/myths/${SLUG}/figure.png`,
+    `  ->  content/figures/${SLUG}.png`,
 );

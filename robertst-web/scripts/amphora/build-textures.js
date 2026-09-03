@@ -262,7 +262,7 @@ for (const panel of PANELS) {
   if (!panel.stencil && !panel.ops) {
     throw new Error(
       `nothing to paint for "${panel.key}". Put a drawing at ` +
-        `content/myths/${panel.key}/figure.png, or author a scene in scripts/amphora/figures.js.`,
+        `content/figures/${panel.key}.png, or author a scene in scripts/amphora/figures.js.`,
     );
   }
 }

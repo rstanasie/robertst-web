@@ -181,7 +181,7 @@ weekly collection change without touching the physics. Exact midpoints tie and r
 deterministically to the earlier stop.
 
 **Adding a myth** is now a content operation, not a code one: see
-[`weekly-publishing.md`](./weekly-publishing.md). The vessel's capacity and angles are
+[`cms.md`](./cms.md). The vessel's capacity and angles are
 declared once in `lib/content/vase.ts`, `npm run content:sync` writes
 `data/vase-panels.json`, and `npm run amphora` repaints from it. A figure's centre still
 goes at `u = ((180 - angle) / 360) mod 1`.
@@ -198,7 +198,7 @@ v        = 1 - (arc length from the foot / total arc length)
 
 Rotating by `A` degrees moves surface `theta` to `theta + A`, so the artwork facing the
 camera at angle `A` sits at `u = ((180 - A) / 360) mod 1`. This is the contract between
-`data/myths.ts` and the texture; if it drifts, the amphora settles on a myth whose
+`data/vase-panels.json` and the texture; if it drifts, the amphora settles on a myth whose
 artwork is not the one facing the viewer.
 
 `npm run amphora:verify` asserts it against the real vertex data at every whole degree,

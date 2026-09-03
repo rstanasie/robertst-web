@@ -1,13 +1,14 @@
 {
-  "_generated": "npm run content:sync from content/weeks/2026-W34.json — do not edit",
-  "week": "2026-W34",
+  "_generated": "npm run content:sync — generated from the active collection, do not edit",
+  "collection": "2026-w34",
   "panels": [
     {
       "key": "prometheus",
       "name": "Prometheus",
       "angle": 36,
       "slot": 0,
-      "access": "preview"
+      "access": "preview",
+      "figure": "content/figures/prometheus.png"
     },
     {
       "key": "dionysos",
@@ -15,7 +16,7 @@
       "angle": 108,
       "slot": 1,
       "access": "preview",
-      "figure": "content/myths/dionysos/figure.png"
+      "figure": "content/figures/dionysos.png"
     },
     {
       "key": "icarus",
@@ -23,7 +24,7 @@
       "angle": 180,
       "slot": 2,
       "access": "preview",
-      "figure": "content/myths/icarus/figure.png",
+      "figure": "content/figures/icarus.png",
       "airborne": true
     },
     {

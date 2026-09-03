@@ -222,4 +222,4 @@ There is no automated visual check. Manually, with `npm run dev`:
    overflows sideways, the vignette still centres on the vessel.
 10. **Other pages.** `/about` is unstyled, as before. Story pages use the same
     ground with `.myth-backdrop--quiet` — see
-    [`weekly-publishing.md`](./weekly-publishing.md).
+    [`cms.md`](./cms.md).

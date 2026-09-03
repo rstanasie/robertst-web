@@ -1,14 +1,14 @@
 import Amphora from "@/components/Amphora";
 import MythBackdrop from "@/components/MythBackdrop";
 import { getViewer } from "@/lib/access/viewer";
+import { getActiveCollection } from "@/lib/content/collection";
 import { buildWeekView } from "@/lib/content/present";
-import { getActiveWeek } from "@/lib/content/week";
 
 export default async function Home() {
   // Reading the viewer makes this route dynamic, which is correct: what a reader
   // may open is part of the page, so it must not be cached across viewers.
-  const [week, viewer] = [getActiveWeek(), await getViewer()];
-  const view = buildWeekView(week, viewer);
+  const [collection, viewer] = await Promise.all([getActiveCollection(), getViewer()]);
+  const view = buildWeekView(collection, viewer);
 
   return (
     <>

@@ -3,23 +3,35 @@ import Image from "next/image";
 /**
  * A story's illustration, or the sealed device that stands in until one exists.
  *
- * Drawings live in `public/images/myths/` and are named in a version's
- * frontmatter. The fallback is deliberately ornamental rather than a broken-image
- * placeholder: a myth without art yet should still look like part of the vessel.
+ * The image is a MediaAsset URL from the CMS — object storage, or any external
+ * URL the editor pasted. Remote images are passed through unoptimised so that
+ * adding a storage provider does not also require configuring an image-domain
+ * allowlist before anything renders. The fallback is deliberately ornamental
+ * rather than a broken-image placeholder: a myth without art yet should still
+ * look like part of the vessel.
  */
 export default function StoryDrawing({
   drawing,
   title,
+  alt,
   sealed = false,
 }: {
   drawing: string | null;
   title: string;
+  /** The asset's own alt text, which the CMS makes editable. */
+  alt?: string;
   sealed?: boolean;
 }) {
   if (drawing) {
     return (
       <div className="myth-drawing">
-        <Image src={drawing} alt={`Illustration for ${title}`} fill sizes="(max-width: 40rem) 90vw, 28rem" />
+        <Image
+          src={drawing}
+          alt={alt ?? `Illustration for ${title}`}
+          fill
+          sizes="(max-width: 40rem) 90vw, 28rem"
+          unoptimized={/^https?:/.test(drawing)}
+        />
       </div>
     );
   }

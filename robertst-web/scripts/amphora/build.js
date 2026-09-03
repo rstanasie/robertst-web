@@ -2,7 +2,7 @@
 
 // Regenerates the amphora's model and textures into public/models/amphora/.
 //   node scripts/amphora/build.js
-// The myth angles are read out of data/myths.ts so the painted panels and the
+// The myth angles are read out of data/vase-panels.json so the painted panels and the
 // snap targets can never disagree.
 
 const fs = require("fs");

@@ -1,38 +1,42 @@
-import type { Viewer } from "@/lib/access/viewer";
+import { StoryAccess } from "@prisma/client";
 
+import type { Viewer } from "@/lib/access/viewer";
+import type { ActiveCollection, CollectionStory } from "./collection";
 import type { StoryChip, VaseStoryChip, WeekView } from "./view";
-import type { ActiveWeek, WeekStory } from "./week";
-import { angleForSlot, onVase } from "./vase";
 
 /**
- * Projects a hydrated week down to what the browser is allowed to know.
+ * Projects the active collection down to what the browser is allowed to know.
  *
- * Pure — no filesystem, no request — so it is safe to unit test and impossible
- * for it to widen access by accident.
+ * Pure — no database, no request — so it is safe to unit test and has no way to
+ * widen access by accident.
  */
 
-const chip = (item: WeekStory, viewer: Viewer): StoryChip => ({
-  slug: item.entry.mythSlug,
-  title: item.myth.title,
-  teaser: item.story.teaser,
-  drawing: item.story.drawing,
-  access: item.entry.access,
+const chip = (story: CollectionStory, viewer: Viewer): StoryChip => ({
+  slug: story.slug,
+  title: story.title,
+  teaser: story.excerpt,
+  access: story.access === StoryAccess.LOCKED ? "locked" : "preview",
   unlocked: viewer.isSubscriber,
 });
 
-export function buildWeekView(week: ActiveWeek, viewer: Viewer): WeekView {
-  const vase: VaseStoryChip[] = week.stories
-    .filter((item) => onVase(item.entry))
-    .map((item) => {
-      const slot = item.entry.vaseSlot as number;
-      return { ...chip(item, viewer), slot, angle: angleForSlot(slot) };
-    })
+export function buildWeekView(collection: ActiveCollection | null, viewer: Viewer): WeekView {
+  if (!collection) {
+    return { week: "", onVase: [], offVase: [], isSubscriber: viewer.isSubscriber };
+  }
+
+  const onVase: VaseStoryChip[] = collection.stories
+    .filter((story) => story.angle !== null && story.amphoraSlot !== null)
+    .map((story) => ({
+      ...chip(story, viewer),
+      slot: story.amphoraSlot as number,
+      angle: story.angle as number,
+    }))
     .sort((a, b) => a.slot - b.slot);
 
   return {
-    week: week.collection.week,
-    onVase: vase,
-    offVase: week.stories.filter((item) => !onVase(item.entry)).map((item) => chip(item, viewer)),
+    week: collection.name,
+    onVase,
+    offVase: collection.stories.filter((story) => story.angle === null).map((story) => chip(story, viewer)),
     isSubscriber: viewer.isSubscriber,
   };
 }

@@ -1,0 +1,238 @@
+// The content system. Deliberately spelled "Story" rather than "Myth": the
+// mythology experience is one presentation of a generic article, and the schema
+// should not have to be migrated the first time something else gets written.
+//
+// Three ideas carry most of the design:
+//
+//   1. A Story row is the *working draft*. What the public sees is
+//      `publishedRevision` — an immutable snapshot. That separation is what
+//      makes "edit a published story, preview it, then publish" possible
+//      without the edits leaking to readers in the meantime.
+//   2. StoryRevision is append-only. Nothing ever updates or deletes one, so
+//      restoring an old revision is a new revision, not a rewind.
+//   3. Which stories the amphora carries lives on CollectionEntry, not on
+//      Story. A story does not know it is on a pot.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// Prisma 7 keeps connection URLs out of the schema: see prisma.config.ts for
+// the migration connection and lib/db.ts for the runtime driver adapter.
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  ADMIN
+  EDITOR
+}
+
+enum StoryStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+/// How much of a story a non-subscriber gets. Mirrors lib/content's existing
+/// access model: a preview cuts off partway, a locked story shows only its card.
+enum StoryAccess {
+  PREVIEW
+  LOCKED
+}
+
+/// Why a revision exists. Purely for reading the history back later.
+enum RevisionKind {
+  CREATED
+  DRAFT_SAVE
+  PUBLISH
+  UNPUBLISH
+  RESTORE
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String?
+  /// scrypt, salted, encoded by lib/auth/password.ts. Never a plaintext column.
+  passwordHash String
+  role         Role     @default(EDITOR)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  sessions       Session[]
+  createdStories Story[]         @relation("StoryCreatedBy")
+  updatedStories Story[]         @relation("StoryUpdatedBy")
+  revisions      StoryRevision[]
+  uploads        MediaAsset[]
+}
+
+/// Sessions live in the database rather than in a signed stateless token so
+/// that signing out — or revoking a stolen cookie — actually takes effect.
+model Session {
+  id String @id @default(cuid())
+
+  /// SHA-256 of the cookie value. A database leak must not yield live sessions.
+  tokenHash String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+/// A file living in object storage. Binary data is deliberately absent: this
+/// row is a pointer plus the metadata needed to render the image accessibly.
+model MediaAsset {
+  id String @id @default(cuid())
+
+  url      String
+  /// Provider key, kept so the object can be deleted later. Null for external URLs.
+  pathname String?
+  /// "vercel-blob" | "local" | "external" — see lib/media/storage.ts.
+  provider String  @default("external")
+  alt      String  @default("")
+  width    Int?
+  height   Int?
+  mimeType String?
+  bytes    Int?
+
+  createdAt   DateTime @default(now())
+  createdById String?
+  createdBy   User?    @relation(fields: [createdById], references: [id], onDelete: SetNull)
+
+  featuredForStories    Story[]         @relation("StoryFeaturedImage")
+  ogForStories          Story[]         @relation("StoryOgImage")
+  featuredForRevisions  StoryRevision[] @relation("RevisionFeaturedImage")
+  ogForRevisions        StoryRevision[] @relation("RevisionOgImage")
+}
+
+model Story {
+  id      String  @id @default(cuid())
+  slug    String  @unique
+  title   String
+  subtitle String?
+  excerpt String  @default("")
+  /// Markdown. `##` headings divide it into the parts the preview cutoff counts.
+  content String  @default("")
+  /// Id of the last section a non-subscriber receives. Null means the whole thing.
+  previewUntil String?
+
+  status StoryStatus @default(DRAFT)
+
+  /// Bumped on every write. The editor sends back the value it loaded, so a
+  /// save against a stale copy is rejected instead of silently overwriting.
+  lockVersion Int @default(0)
+  /// The public "version 2" telling counter — incremented once per publish.
+  publishedVersion Int @default(0)
+  /// High-water mark for revision numbering. Revisions are never renumbered.
+  revisionCounter Int @default(0)
+
+  seoTitle       String?
+  seoDescription String?
+
+  featuredImageId String?
+  featuredImage   MediaAsset? @relation("StoryFeaturedImage", fields: [featuredImageId], references: [id], onDelete: SetNull)
+  ogImageId       String?
+  ogImage         MediaAsset? @relation("StoryOgImage", fields: [ogImageId], references: [id], onDelete: SetNull)
+
+  /// What the public reads. Null whenever the story is not live.
+  publishedRevisionId String?        @unique
+  publishedRevision   StoryRevision? @relation("PublishedRevision", fields: [publishedRevisionId], references: [id], onDelete: SetNull)
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  /// First time this story went live. Kept through an unpublish.
+  publishedAt   DateTime?
+  unpublishedAt DateTime?
+
+  createdById String?
+  createdBy   User?   @relation("StoryCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedById String?
+  updatedBy   User?   @relation("StoryUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+
+  revisions StoryRevision[]   @relation("StoryRevisions")
+  entries   CollectionEntry[]
+
+  @@index([status, publishedAt])
+  @@index([updatedAt])
+}
+
+/// An immutable snapshot. Never updated, never deleted while its story lives.
+model StoryRevision {
+  id      String @id @default(cuid())
+  storyId String
+  story   Story  @relation("StoryRevisions", fields: [storyId], references: [id], onDelete: Cascade)
+
+  /// 1, 2, 3 … per story. Stable: restoring revision 1 creates revision 4.
+  number Int
+  kind   RevisionKind @default(DRAFT_SAVE)
+  note   String?
+
+  restoredFromId String?
+  restoredFrom   StoryRevision?  @relation("RestoreSource", fields: [restoredFromId], references: [id], onDelete: SetNull)
+  restoredInto   StoryRevision[] @relation("RestoreSource")
+
+  title          String
+  slug           String
+  subtitle       String?
+  excerpt        String
+  content        String
+  previewUntil   String?
+  seoTitle       String?
+  seoDescription String?
+
+  featuredImageId String?
+  featuredImage   MediaAsset? @relation("RevisionFeaturedImage", fields: [featuredImageId], references: [id], onDelete: SetNull)
+  ogImageId       String?
+  ogImage         MediaAsset? @relation("RevisionOgImage", fields: [ogImageId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  authorId  String?
+  author    User?    @relation(fields: [authorId], references: [id], onDelete: SetNull)
+
+  publishedFor Story? @relation("PublishedRevision")
+
+  @@unique([storyId, number])
+  @@index([storyId, number])
+}
+
+/// A curated set of stories presented together — "this week's amphora" is one.
+/// Exactly one is active; the service layer enforces it when activating.
+model Collection {
+  id          String    @id @default(cuid())
+  slug        String    @unique
+  name        String
+  active      Boolean   @default(false)
+  publishedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  entries CollectionEntry[]
+
+  @@index([active])
+}
+
+/// Membership, ordering, access and stage position — everything about how a
+/// story is *presented* in a collection, kept off the story itself.
+model CollectionEntry {
+  id           String     @id @default(cuid())
+  collectionId String
+  collection   Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  storyId      String
+  story        Story      @relation(fields: [storyId], references: [id], onDelete: Cascade)
+
+  position Int
+  access   StoryAccess @default(PREVIEW)
+  /// Which painted panel of the amphora carries this story, or null for none.
+  /// Postgres permits repeated NULLs in a unique index, so any number of
+  /// entries can sit off the vessel while painted slots stay exclusive.
+  amphoraSlot Int?
+
+  @@unique([collectionId, storyId])
+  @@unique([collectionId, position])
+  @@unique([collectionId, amphoraSlot])
+  @@index([collectionId])
+}

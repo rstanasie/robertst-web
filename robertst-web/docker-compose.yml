@@ -1,0 +1,24 @@
+# Local Postgres for development and tests. Nothing in the application depends
+# on Docker — any Postgres reachable at DATABASE_URL will do — but this makes
+# `npm run db:up` a one-liner on a fresh machine.
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: robertst-web-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: amphora
+      POSTGRES_PASSWORD: amphora
+      POSTGRES_DB: amphora
+    ports:
+      - "5433:5432"
+    volumes:
+      - amphora-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U amphora -d amphora"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  amphora-pgdata:

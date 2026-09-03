@@ -226,7 +226,7 @@ export default function Amphora({ week }: { week: WeekView }) {
         )}
       </div>
 
-      <nav data-amphora="index" aria-label={`Stories in week ${week.week}`}>
+      <nav data-amphora="index" aria-label={week.week ? `Stories in ${week.week}` : "Stories in this collection"}>
         <p className="sr-only">This week&rsquo;s five</p>
 
         <ul className="flex flex-wrap justify-center gap-x-4 gap-y-1">

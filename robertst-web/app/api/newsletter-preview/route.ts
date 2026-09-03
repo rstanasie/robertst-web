@@ -13,5 +13,9 @@ export async function GET(request: Request) {
   }
 
   const origin = new URL(request.url).origin;
-  return NextResponse.json(buildNewsletterIssue(origin));
+  const issue = await buildNewsletterIssue(origin);
+
+  return issue
+    ? NextResponse.json(issue)
+    : new NextResponse("No active collection", { status: 404 });
 }
