@@ -24,3 +24,903 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Homepage: the myth procession
+   ────────────────────────────────────────────────────────────────────────────
+
+   Three stacked layers, painted by <MythBackdrop />:
+
+     .myth-backdrop            the flat sea-blue ground
+     .myth-backdrop__weave       rotated frame, oversized to cover the corners
+       .myth-backdrop__bands       the hollow bands and their hairline borders
+       .myth-backdrop__frieze      the Greek procession, tiled along the bands
+     .myth-backdrop__vignette  a soft lift toward the centre, plus edge falloff
+
+   Rotating the frame rather than the gradients is what keeps the bands and the
+   frieze aligned: inside that frame the bands are simply horizontal and the
+   frieze tile is a plain vertical repeat. Making them two layers rather than
+   two backgrounds on one layer is what lets the borders and the illustrations
+   carry different weights.
+
+   Tuning, all on .myth-backdrop:
+     --band-angle     band direction; negative rises to the right
+     --band-pitch     one band plus its gutter; band width and the frieze both
+                      scale with it, so this is the one dial for stripe width
+     --band-fill      share of the pitch the band itself occupies. Must match
+                      BAND / PITCH in build-frieze.js, which is where the tile
+                      puts its artwork — change one and regenerate the other.
+     --band-rule      thickness of the two hairline borders
+     --band-edge      border colour        --band-wash  the hollow interior
+     --band-opacity   weight of the bands
+     --frieze-opacity weight of the illustrations
+     --focus-*        centre and radius of the light behind the amphora
+
+   Illustration density and the order of the motifs are not CSS: they live in
+   scripts/backdrop/build-frieze.js (TILE_W, FIGURE_H, and the two renderRow
+   calls). Run `npm run backdrop` after changing them.
+   ──────────────────────────────────────────────────────────────────────────── */
+
+.myth-backdrop {
+  --ground: var(--myth-navy);
+
+  --band-angle: -32deg;
+  --band-pitch: 230px;
+  --band-fill: 0.72;
+  --band-width: calc(var(--band-pitch) * var(--band-fill));
+  --band-rule: 2px;
+  --band-edge: rgba(242, 233, 219, 0.92);
+  --band-wash: rgba(196, 151, 93, 0.10);
+  /* Texture, not content: the bands and the procession sit well below the
+     vessel and the type in the visual order. */
+  --band-opacity: 0.13;
+  --frieze-opacity: 0.075;
+
+  --focus-x: 50%;
+  --focus-y: 52%;
+  --focus-radius: 68%;
+
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  background-color: var(--ground);
+}
+
+/* Oversized because rotating a viewport-sized box leaves its corners bare. */
+.myth-backdrop__weave {
+  position: absolute;
+  inset: -45%;
+  transform: rotate(var(--band-angle));
+}
+
+.myth-backdrop__weave > * {
+  position: absolute;
+  inset: 0;
+  background-repeat: repeat;
+}
+
+.myth-backdrop__bands {
+  opacity: var(--band-opacity);
+  background-image: repeating-linear-gradient(
+    to bottom,
+    var(--band-edge) 0,
+    var(--band-edge) var(--band-rule),
+    var(--band-wash) var(--band-rule),
+    var(--band-wash) calc(var(--band-width) - var(--band-rule)),
+    var(--band-edge) calc(var(--band-width) - var(--band-rule)),
+    var(--band-edge) var(--band-width),
+    transparent var(--band-width),
+    transparent var(--band-pitch)
+  );
+}
+
+/* The tile spans two pitches — one figural register, one ornamental — so
+   consecutive bands differ. Width is auto so the tile keeps its aspect. */
+.myth-backdrop__frieze {
+  opacity: var(--frieze-opacity);
+  background-image: url("/images/backdrop/myth-frieze.svg");
+  background-size: auto calc(var(--band-pitch) * 2);
+}
+
+.myth-backdrop__vignette {
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(
+      ellipse var(--focus-radius) var(--focus-radius) at var(--focus-x) var(--focus-y),
+      rgba(19, 36, 61, 0.82) 0%,
+      rgba(19, 36, 61, 0.64) 38%,
+      rgba(19, 36, 61, 0.3) 64%,
+      rgba(19, 36, 61, 0) 88%
+    ),
+    linear-gradient(
+      to bottom,
+      rgba(6, 13, 24, 0.26) 0%,
+      rgba(6, 13, 24, 0) 22%,
+      rgba(6, 13, 24, 0) 64%,
+      rgba(6, 13, 24, 0.34) 100%
+    );
+}
+
+/* The vignette radii are percentages of the viewport box, so on a tall narrow
+   screen the same number reaches much further down the page than across it —
+   hence a smaller radius, not a larger one, as the viewport narrows. */
+@media (max-width: 48rem) {
+  .myth-backdrop {
+    --band-pitch: 156px;
+    --band-rule: 1.5px;
+    --focus-radius: 68%;
+  }
+}
+
+@media (max-width: 30rem) {
+  .myth-backdrop {
+    --band-pitch: 124px;
+    --band-rule: 1px;
+    --focus-radius: 56%;
+  }
+}
+
+@media (min-width: 100rem) {
+  .myth-backdrop {
+    --band-pitch: 286px;
+  }
+}
+
+/* The backdrop is only on the homepage, so the page-level colours it needs are
+   scoped to its presence rather than set globally. `body` is repainted too, so
+   overscroll on touch does not flash the default background. */
+html:has(.myth-backdrop) {
+  scrollbar-gutter: stable;
+}
+
+body:has(.myth-backdrop) {
+  color-scheme: dark;
+  background: #0b1626;
+}
+
+body:has(.myth-backdrop) header {
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: var(--myth-header-h);
+  padding-inline: 1.5rem;
+  font-family: var(--myth-utility);
+  font-size: 0.75rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(216, 203, 184, 0.75);
+}
+
+body:has(.myth-backdrop) header a {
+  color: inherit;
+  text-decoration: none;
+}
+
+body:has(.myth-backdrop) header a:hover {
+  color: var(--myth-ink);
+}
+
+/* ── The stage ───────────────────────────────────────────────────────────── */
+
+:root {
+  /* Mediterranean palette. Warm ivory and gold over a muted navy, with
+     terracotta borrowed from the vessel's own clay.
+
+     Contrast against --myth-navy, measured: ivory 14.4, soft 10.8, gold 6.5 —
+     all pass AA for body text. Bronze and terracotta land at 3.9, which is AA
+     for large text and UI only, so they carry borders, rules and marks and
+     never small copy. */
+  --myth-navy: #0e1b2e;
+  --myth-navy-2: #13243d;
+  --myth-ink: #f2e9db;
+  --myth-ink-soft: #d8cbb8;
+  --myth-gold: #c4975d;
+  --myth-bronze: #9e6c43;
+  --myth-terracotta: #b85e35;
+
+  /* Fixed so .myth-stage can take exactly the rest of the viewport. */
+  --myth-header-h: 3.5rem;
+  --myth-display: ui-serif, "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  --myth-utility: ui-sans-serif, "Avenir Next", Avenir, "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+
+.myth-stage {
+  --ink: var(--myth-ink);
+  --ink-muted: var(--myth-ink-soft);
+  --accent: var(--myth-gold);
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  /* Vertical rhythm scales with viewport height so the whole stage — title
+     through the myth links — fits one screen without scrolling. */
+  gap: clamp(0.5rem, 1.6svh, 1.5rem);
+  height: calc(100svh - var(--myth-header-h));
+  min-height: 32rem;
+  padding: 0.25rem 1.25rem clamp(0.75rem, 3svh, 3rem);
+  color: var(--ink-muted);
+  text-align: center;
+}
+
+.myth-stage h1 {
+  font-family: var(--myth-display);
+  font-size: clamp(2rem, min(7vw, 6.2svh), 4.25rem);
+  font-weight: 400;
+  line-height: 1.04;
+  letter-spacing: 0.012em;
+  color: var(--ink);
+  text-wrap: balance;
+}
+
+.myth-stage h1::after {
+  content: "";
+  display: block;
+  width: 4.5rem;
+  height: 1px;
+  margin: clamp(0.5rem, 1.4svh, 1.25rem) auto 0;
+  background: linear-gradient(to right, transparent, var(--myth-terracotta), transparent);
+}
+
+/* Stretch, do not shrink-wrap. As a flex item in a centred column the section
+   would size to its widest child, and the amphora inside it is `w-full
+   max-w-[20rem]` with a fixed aspect ratio — so the vessel would grow and
+   shrink by ~40px every time the result panel filled and emptied, taking the
+   whole centred column with it. Reads exactly like the page zooming. */
+.myth-stage > h1,
+.myth-stage > p {
+  flex: none;
+}
+
+.myth-stage > section {
+  flex: 0 1 auto;
+  width: 100%;
+  min-height: 0;
+  gap: clamp(0.35rem, 1.1svh, 1rem);
+}
+
+.myth-stage section > * {
+  flex: none;
+}
+
+/* The amphora's drag surface — the section's other div is the result panel.
+   It is the one element allowed to give ground: everything else holds its size,
+   so the vessel absorbs whatever the viewport does not have room for and the
+   myth links below it always stay on screen. Amphora sizes it `w-full
+   max-w-[20rem]` at a fixed 7/10; dropping `w-full` lets that ratio derive the
+   width from the height flex hands it. 28.5625rem is 20rem x 10/7, so on a
+   roomy screen it lands at exactly the size Amphora asked for. */
+.myth-stage [data-amphora="stage"] {
+  flex: 0 1 auto;
+  width: auto;
+  max-width: 20rem;
+  height: 28.5625rem;
+  /* Below this the vessel stops being the hero; a short window may scroll
+     instead. */
+  min-height: 13rem;
+  /* The object is the only interactive thing on the page and nothing tells you
+     so, which means the affordance has to be entirely in how it behaves: it
+     drifts while it is left alone, gathers warmth as the cursor arrives, and
+     goes still the moment a hand is on it. */
+  animation: myth-adrift 11s ease-in-out infinite;
+}
+
+/* Lamplight under the clay, not a glow around it: the gradient sits low and
+   wide so it reads as the vessel standing in warm light rather than as a
+   selected element. Painted by ::before, which precedes the viewer in paint
+   order, so no z-index is needed to keep it behind. */
+.myth-stage [data-amphora="stage"]::before {
+  content: "";
+  position: absolute;
+  inset: 10% -18% -8%;
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse 50% 44% at 50% 64%,
+    rgba(196, 151, 93, 0.22) 0%,
+    rgba(184, 94, 53, 0.11) 44%,
+    rgba(196, 151, 93, 0) 76%
+  );
+  opacity: 0.6;
+  transition: opacity 480ms ease, transform 480ms ease;
+}
+
+.myth-stage [data-amphora="stage"]:hover::before,
+.myth-stage [data-amphora="stage"]:focus-visible::before {
+  opacity: 0.92;
+  transform: scale(1.04);
+}
+
+.myth-stage [data-amphora="stage"][data-holding]::before {
+  opacity: 1;
+  transform: scale(1.07);
+  transition-duration: 180ms;
+}
+
+/* A hand on the clay steadies it. Pausing rather than resetting is the point —
+   it stops where it was, the way a real object would. */
+.myth-stage [data-amphora="stage"][data-holding] {
+  animation-play-state: paused;
+}
+
+/* The handles, and nothing else. Transparent: the only sign they are there is
+   that the cursor changes over them and not over the clay, which is the whole
+   of the instruction the page gives. Positioned in percentages of the stage, so
+   they hold their place as the vessel is scaled. touch-action is set here
+   rather than on the stage so a thumb on the body still scrolls the page. */
+.myth-stage [data-amphora="handle"] {
+  position: absolute;
+  touch-action: none;
+  cursor: grab;
+}
+
+.myth-stage [data-amphora="handle"][data-occluded] {
+  pointer-events: none;
+}
+
+.myth-stage [data-amphora="stage"][data-holding] [data-amphora="handle"] {
+  cursor: grabbing;
+}
+
+@keyframes myth-adrift {
+  0%,
+  100% {
+    transform: translate3d(0, 0.25rem, 0);
+  }
+  50% {
+    transform: translate3d(0, -0.25rem, 0);
+  }
+}
+
+/* Above the title: an epigraph, not a kicker. Set in the display face rather
+   than tracked-out uppercase, because letter-spaced capitals turn any sentence
+   into a masthead line and that is the one thing this line must not sound like.
+   Roman here against the italic invitation below the title, so the two lines
+   bracketing it read as different voices rather than a matched pair. */
+.myth-stage > [data-stage="eyebrow"] {
+  /* Wide enough for the line to stand whole where there is room; below that it
+     breaks into two even lines rather than one long and one short. */
+  max-width: 48ch;
+  font-family: var(--myth-display);
+  font-size: clamp(0.75rem, min(1.9vw, 1.7svh), 0.8125rem);
+  line-height: 1.5;
+  letter-spacing: 0.02em;
+  /* Measured 6.0 against the navy. */
+  color: rgba(216, 203, 184, 0.72);
+  text-wrap: balance;
+}
+
+/* The invitation. Italic and set in the display face so it reads as an aside in
+   the author's voice — this is the only line asking anything of the reader, and
+   it asks by inviting rather than instructing. */
+.myth-stage > [data-stage="lead"] {
+  max-width: 26rem;
+  font-family: var(--myth-display);
+  font-style: italic;
+  font-size: clamp(1rem, min(2.4vw, 2.2svh), 1.1875rem);
+  line-height: 1.6;
+  letter-spacing: 0.01em;
+  color: rgba(242, 233, 219, 0.78);
+  text-wrap: balance;
+}
+
+/* Amphora renders its own <h2>The Amphora</h2>, which repeats the page title.
+   Kept in the accessibility tree, taken out of the visual design. */
+.myth-stage [data-amphora="title"] {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.myth-stage a {
+  color: var(--accent);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.28em;
+  transition: color 160ms ease;
+}
+
+.myth-stage a:hover {
+  color: var(--ink);
+}
+
+.myth-stage :focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+/* The vessel's own focus state. A 2px system outline around a box this large
+   reads as an error box; a hairline set off from the edge reads as the border
+   painted round a panel on the vase itself. Measured 4.9 against the navy, so
+   it is still an indicator and not just a decoration. */
+.myth-stage [data-amphora="stage"]:focus-visible {
+  outline: 1.5px solid rgba(196, 151, 93, 0.85);
+  outline-offset: 0.625rem;
+  border-radius: 2px;
+}
+
+/* What the vessel turned up. Reserved height, and content centred inside the
+   reserve, so filling it never reflows the column — that reflow is what read as
+   the page zooming when a spin ended. `max-width` caps the line length, so the
+   reserve only has to cover the tallest state, measured across every myth in
+   the week and both access states rather than guessed. Re-measure when teasers
+   change: one extra wrapped line makes the whole column jump.
+
+   Measured over all five myths x 10 widths: 136px at 375-414px, 145px from
+   768px up (the name is clamped against the viewport, so it grows), and 157px
+   at 320px where a sealed teaser takes a third line under the state label. */
+.myth-stage [data-amphora="reveal"] {
+  position: relative;
+  font-family: var(--myth-display);
+  min-height: 9.25rem;
+  max-width: 40ch;
+  line-height: 1.45;
+}
+
+/* Keyed on the myth slug in Amphora, so each new story genuinely re-mounts and
+   surfaces rather than swapping its text in place.
+
+   `backwards` rather than `both`: an animation filled forwards keeps applying
+   its end state for good, and would outrank the opacity the refusal note fades
+   these down to. Backwards fills only the delay, which is all that is wanted. */
+.myth-stage [data-amphora="reveal"] > *:not([data-amphora="refusal"]) {
+  animation: myth-surface 520ms cubic-bezier(0.22, 0.61, 0.36, 1) backwards;
+  transition: opacity 240ms ease;
+}
+
+@keyframes myth-surface {
+  from {
+    opacity: 0;
+    transform: translateY(0.4rem);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Only sealed stories carry a state line, so the label is the exception and the
+   name is the rule — no permanent badge slot that has to say something. */
+.myth-stage [data-amphora="state"] {
+  margin-bottom: 0.4rem;
+  font-family: var(--myth-utility);
+  font-size: 0.625rem;
+  letter-spacing: 0.26em;
+  text-indent: 0.26em;
+  text-transform: uppercase;
+  color: rgba(216, 203, 184, 0.62);
+}
+
+.myth-stage [data-amphora="name"] {
+  font-size: clamp(1.375rem, min(4.6vw, 3.4svh), 1.875rem);
+  line-height: 1.16;
+  letter-spacing: 0.012em;
+  color: var(--ink);
+  text-wrap: balance;
+}
+
+.myth-stage [data-amphora="teaser"] {
+  max-width: 34ch;
+  margin-top: 0.45rem;
+  font-size: 0.9375rem;
+  line-height: 1.55;
+  color: rgba(216, 203, 184, 0.88);
+  animation-delay: 70ms;
+}
+
+.myth-stage [data-amphora="open"] {
+  margin-top: 0.7rem;
+  font-size: 0.9375rem;
+  animation-delay: 140ms;
+}
+
+/* The vessel's answer to a gesture that fell short. It takes the same place the
+   myth is given rather than a slot of its own, so nothing on the page moves:
+   the answer always arrives in one spot, and this is simply a different answer.
+   The myth underneath is faded rather than unmounted and comes back by itself. */
+.myth-stage [data-amphora="reveal"][data-refused] > *:not([data-amphora="refusal"]) {
+  opacity: 0;
+}
+
+.myth-stage [data-amphora="refusal"] {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  font-style: italic;
+  font-size: clamp(1.0625rem, min(3.4vw, 2.6svh), 1.25rem);
+  letter-spacing: 0.01em;
+  color: rgba(242, 233, 219, 0.82);
+  /* Duration is set inline from REFUSAL_NOTE_MS, so the fade cannot outlast the
+     note or leave it hanging at full strength. */
+  animation: myth-refusal ease both;
+}
+
+@keyframes myth-refusal {
+  0% {
+    opacity: 0;
+    transform: translateY(0.3rem);
+  }
+  14%,
+  76% {
+    opacity: 1;
+    transform: none;
+  }
+  100% {
+    opacity: 0;
+    transform: none;
+  }
+}
+
+/* Before the first turn: a fleuron, the ornament a printer sets in a blank.
+   It reads as deliberately empty rather than as unfinished, and it asks the
+   reader for nothing. Not hung off the vessel — the model is framed with room
+   under its foot, so anything vertical would read as a stray tick. */
+.myth-stage [data-amphora="rest"] {
+  position: relative;
+  display: block;
+  width: 7.5rem;
+  height: 0.5rem;
+  background: linear-gradient(
+      to right,
+      transparent,
+      rgba(196, 151, 93, 0.42) 24%,
+      rgba(196, 151, 93, 0.42) 76%,
+      transparent
+    )
+    center / 100% 1px no-repeat;
+}
+
+.myth-stage [data-amphora="rest"]::after {
+  content: "";
+  position: absolute;
+  inset: 50% auto auto 50%;
+  width: 0.3125rem;
+  height: 0.3125rem;
+  transform: translate(-50%, -50%) rotate(45deg);
+  background: var(--myth-terracotta);
+  opacity: 0.85;
+}
+
+.myth-stage [data-amphora="index"] {
+  font-family: var(--myth-utility);
+  font-size: 0.6875rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(216, 203, 184, 0.6);
+}
+
+
+/* Muted beige at rest so the list reads as one quiet line under the vessel,
+   and gold for whichever myth the amphora has settled on. */
+.myth-stage [data-amphora="index"] a {
+  color: rgba(216, 203, 184, 0.82);
+  text-decoration-color: rgba(196, 151, 93, 0.4);
+  text-underline-offset: 0.32em;
+}
+
+.myth-stage [data-amphora="index"] a:hover {
+  color: var(--myth-ink);
+  text-decoration-color: var(--myth-gold);
+}
+
+/* A sealed story is in the week but will not open. It stays legible and
+   linkable — the page it leads to explains the seal — but it is visibly not
+   one of the ones you can start. */
+.myth-stage [data-amphora="index"] [data-sealed] a {
+  color: rgba(216, 203, 184, 0.62);
+  text-decoration-style: dotted;
+}
+
+.myth-stage [data-amphora="index"] [data-sealed] a:hover {
+  color: var(--myth-ink);
+}
+
+/* Last, so the settled myth stays gold even when it is one of the sealed two. */
+.myth-stage [data-amphora="index"] [data-current] a {
+  color: var(--myth-gold);
+  text-decoration-color: var(--myth-gold);
+}
+
+.myth-seal {
+  margin-right: 0.3em;
+  color: var(--myth-terracotta);
+  opacity: 0.85;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* Under ~360px the longest teasers take a third line, which is both a taller
+   reserve and a worse line length, so the teaser steps down a size and the
+   reserve is measured again against that. */
+@media (max-width: 22.5rem) {
+  .myth-stage [data-amphora="teaser"] {
+    font-size: 0.875rem;
+  }
+
+  .myth-stage [data-amphora="reveal"] {
+    min-height: 8.75rem;
+  }
+}
+
+/* A short window has to take the shortfall out of somewhere, and the vessel is
+   the element allowed to give ground. Lowering the floor only bites where the
+   content genuinely does not fit — where flex already hands the vessel more
+   than the floor, this changes nothing. */
+@media (max-height: 43rem) {
+  .myth-stage [data-amphora="stage"] {
+    min-height: 10rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .myth-stage a {
+    transition: none;
+  }
+
+  .myth-stage [data-amphora="stage"],
+  .myth-stage [data-amphora="stage"]::before,
+  .myth-stage [data-amphora="reveal"] > * {
+    animation: none;
+    transition: none;
+  }
+
+  /* The note still appears and goes; it just does so without the fade. */
+  .myth-stage [data-amphora="refusal"] {
+    animation: none;
+  }
+}
+
+/* ── Reading a story ─────────────────────────────────────────────────────────
+   Same ground as the homepage so the two feel like one object, but with the
+   wallpaper turned right down: a frieze that works behind a spinning vessel is
+   too loud behind a column of text. */
+
+.myth-backdrop--quiet {
+  --band-opacity: 0.075;
+  --frieze-opacity: 0.045;
+  --focus-radius: 96%;
+}
+
+.myth-read {
+  --ink: var(--myth-ink);
+  --ink-muted: var(--myth-ink-soft);
+  --accent: var(--myth-gold);
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.25rem;
+  width: 100%;
+  max-width: 40rem;
+  margin-inline: auto;
+  padding: 1.5rem 1.25rem 5rem;
+  color: var(--ink-muted);
+}
+
+.myth-read--narrow {
+  max-width: 32rem;
+}
+
+.myth-read__eyebrow {
+  font-family: var(--myth-utility);
+  font-size: 0.6875rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(216, 203, 184, 0.6);
+}
+
+.myth-read h1 {
+  font-family: var(--myth-display);
+  font-size: clamp(2.25rem, 6vw, 3.25rem);
+  font-weight: 400;
+  line-height: 1.05;
+  text-align: center;
+  text-wrap: balance;
+  color: var(--ink);
+}
+
+.myth-read__teaser {
+  max-width: 34ch;
+  font-family: var(--myth-display);
+  font-size: 1.0625rem;
+  line-height: 1.6;
+  text-align: center;
+}
+
+.myth-drawing {
+  position: relative;
+  width: min(100%, 22rem);
+  aspect-ratio: 1 / 1;
+  color: var(--ink-muted);
+}
+
+.myth-drawing img {
+  object-fit: contain;
+}
+
+/* Standing in for art that does not exist yet: small and quiet, so it reads as
+   an ornament rather than as a missing image. */
+.myth-drawing--device {
+  width: 7rem;
+  opacity: 0.4;
+}
+
+/* Except on a sealed story, where the seal *is* the illustration. */
+.myth-drawing--sealed {
+  width: min(100%, 15rem);
+  opacity: 0.75;
+}
+
+.myth-drawing svg {
+  width: 100%;
+  height: 100%;
+}
+
+.myth-read__body {
+  width: 100%;
+  font-family: var(--myth-display);
+  font-size: 1.0625rem;
+  line-height: 1.72;
+}
+
+.myth-part + .myth-part {
+  margin-top: 2.25rem;
+}
+
+.myth-part h2 {
+  margin-bottom: 0.75rem;
+  font-family: var(--myth-utility);
+  font-size: 0.6875rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(216, 203, 184, 0.62);
+}
+
+.myth-part p + p {
+  margin-top: 1rem;
+}
+
+/* The edge of the week. Ruled off above rather than boxed, so it reads as the
+   page running out rather than as an advert dropped into the text. */
+.myth-notice {
+  margin-top: 2.75rem;
+  padding-top: 2rem;
+  border-top: 1px solid rgba(242, 233, 219, 0.16);
+  text-align: center;
+}
+
+.myth-notice__mark {
+  font-size: 0.875rem;
+  color: var(--accent);
+  opacity: 0.8;
+}
+
+.myth-notice h2 {
+  margin-top: 0.75rem;
+  font-family: var(--myth-display);
+  font-size: 1.375rem;
+  font-weight: 400;
+  color: var(--ink);
+}
+
+.myth-notice p {
+  max-width: 36ch;
+  margin: 0.6rem auto 0;
+  font-family: var(--myth-display);
+  line-height: 1.6;
+}
+
+.myth-notice__cta {
+  display: inline-block;
+  margin-top: 1.5rem;
+  padding: 0.8125rem 1.75rem;
+  border: 1px solid rgba(196, 151, 93, 0.55);
+  border-radius: 999px;
+  font-family: var(--myth-utility);
+  font-size: 0.75rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  text-decoration: none;
+  color: var(--myth-ink);
+  background: transparent;
+  transition: border-color 160ms ease, background-color 160ms ease, color 160ms ease;
+}
+
+.myth-notice__cta:hover {
+  border-color: var(--myth-gold);
+  background: var(--myth-gold);
+  color: var(--myth-navy);
+}
+
+.myth-notice__fine {
+  max-width: 44ch;
+  margin-top: 1rem;
+  font-family: var(--myth-utility);
+  font-size: 0.6875rem;
+  letter-spacing: 0.08em;
+  color: rgba(216, 203, 184, 0.62);
+}
+
+.myth-notice--sealed {
+  margin-top: 0.5rem;
+  border-top: 0;
+  padding-top: 0;
+}
+
+.myth-read__offer {
+  font-family: var(--myth-display);
+  line-height: 1.9;
+  text-align: center;
+  list-style: none;
+}
+
+.myth-read__state {
+  font-family: var(--myth-utility);
+  font-size: 0.6875rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(216, 203, 184, 0.6);
+}
+
+.myth-read__dev {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1rem 1.25rem;
+  border: 1px dashed rgba(216, 203, 184, 0.2);
+  border-radius: 0.5rem;
+}
+
+.myth-read__dev button {
+  padding: 0.6rem 1.4rem;
+  border: 1px solid rgba(196, 151, 93, 0.45);
+  border-radius: 999px;
+  font-family: var(--myth-utility);
+  font-size: 0.75rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink);
+  background: rgba(196, 151, 93, 0.06);
+}
+
+.myth-read__dev span {
+  font-family: var(--myth-utility);
+  font-size: 0.625rem;
+  letter-spacing: 0.06em;
+  color: rgba(216, 203, 184, 0.62);
+}
+
+.myth-read a:not(.myth-notice__cta) {
+  color: var(--accent);
+  text-underline-offset: 0.28em;
+}
+
+.myth-read__back {
+  margin-top: 1rem;
+  font-family: var(--myth-utility);
+  font-size: 0.6875rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.myth-read :focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}

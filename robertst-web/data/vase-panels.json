@@ -1,0 +1,45 @@
+{
+  "_generated": "npm run content:sync — generated from the active collection, do not edit",
+  "collection": "2026-w34",
+  "panels": [
+    {
+      "key": "prometheus",
+      "name": "Prometheus",
+      "angle": 36,
+      "slot": 0,
+      "access": "preview",
+      "figure": "content/figures/prometheus.png"
+    },
+    {
+      "key": "dionysos",
+      "name": "Dionysos",
+      "angle": 108,
+      "slot": 1,
+      "access": "preview",
+      "figure": "content/figures/dionysos.png"
+    },
+    {
+      "key": "icarus",
+      "name": "Icarus",
+      "angle": 180,
+      "slot": 2,
+      "access": "preview",
+      "figure": "content/figures/icarus.png",
+      "airborne": true
+    },
+    {
+      "key": "orpheus",
+      "name": "Orpheus",
+      "angle": 252,
+      "slot": 3,
+      "access": "locked"
+    },
+    {
+      "key": "pandora",
+      "name": "Pandora",
+      "angle": 324,
+      "slot": 4,
+      "access": "locked"
+    }
+  ]
+}

@@ -1,0 +1,36 @@
+{
+  "week": "2026-W34",
+  "publishedAt": "2026-08-17T06:00:00Z",
+  "entries": [
+    {
+      "mythSlug": "prometheus",
+      "version": 1,
+      "access": "preview",
+      "vaseSlot": 0
+    },
+    {
+      "mythSlug": "dionysos",
+      "version": 1,
+      "access": "preview",
+      "vaseSlot": 1
+    },
+    {
+      "mythSlug": "icarus",
+      "version": 1,
+      "access": "preview",
+      "vaseSlot": 2
+    },
+    {
+      "mythSlug": "orpheus",
+      "version": 1,
+      "access": "locked",
+      "vaseSlot": 3
+    },
+    {
+      "mythSlug": "pandora",
+      "version": 1,
+      "access": "locked",
+      "vaseSlot": 4
+    }
+  ]
+}

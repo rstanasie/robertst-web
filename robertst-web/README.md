@@ -1,36 +1,100 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# robertst-web
 
-## Getting Started
+A personal site for Greek mythology writing, built around an interactive 3D
+amphora, with a private CMS behind it.
 
-First, run the development server:
+Next.js 16 (App Router) · React 19 · TypeScript · Tailwind CSS v4 · PostgreSQL ·
+Prisma 7.
+
+## Getting started
+
+You need Node 20.19+ and a PostgreSQL 14+ database. `docker-compose.yml` has one
+if you do not.
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install                 # also runs `prisma generate`
+cp .env.example .env        # then fill in AUTH_SECRET (the file says how)
+
+npm run db:up               # start Postgres in Docker on port 5433
+npm run db:migrate          # create the schema
+npm run db:seed             # load the sample myths and create an admin
+
+npm run dev                 # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+The seed creates `admin@localhost` with the password `amphora-dev-password`.
+Set `ADMIN_EMAIL` and `ADMIN_PASSWORD` before seeding to choose your own, or run
+`npm run cms:user` at any time to add or re-password an account.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Sign in at [/admin](http://localhost:3000/admin).
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### Using your own Postgres
 
-## Learn More
+Nothing depends on Docker. Point `DATABASE_URL` at any Postgres and skip
+`npm run db:up`.
 
-To learn more about Next.js, take a look at the following resources:
+## Commands
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+| Command | What it does |
+| --- | --- |
+| `npm run dev` | Development server |
+| `npm run build` / `npm start` | Production build and serve |
+| `npm run lint` / `npm run typecheck` | ESLint / `tsc --noEmit` |
+| `npm test` | Domain and integration tests |
+| `npm run db:up` / `db:down` | Local Postgres container |
+| `npm run db:migrate` | Create and apply a migration (development) |
+| `npm run db:deploy` | Apply existing migrations (production) |
+| `npm run db:seed` | Load the sample myths |
+| `npm run db:reset` | Drop, re-migrate and re-seed |
+| `npm run db:studio` | Prisma Studio |
+| `npm run cms:user` | Create or re-password a CMS account |
+| `npm run content:sync` | Write the active collection to `data/vase-panels.json` |
+| `npm run amphora` | Rebuild and verify the 3D amphora textures |
+| `npm run backdrop` | Rebuild the homepage frieze tile |
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### Tests
 
-## Deploy on Vercel
+Pure domain tests run anywhere. Integration tests need `TEST_DATABASE_URL`
+pointing at a database they are allowed to empty, and **skip** rather than run
+against your development data when it is unset:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```bash
+docker exec robertst-web-db psql -U amphora -d postgres \
+  -c "CREATE DATABASE amphora_test OWNER amphora;"
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+DIRECT_DATABASE_URL="postgresql://amphora:amphora@localhost:5433/amphora_test" \
+  npx prisma migrate deploy
+
+# add TEST_DATABASE_URL to .env, then
+npm test
+```
+
+## The amphora needs a rebuild step
+
+The vessel's painted figures are baked into a texture atlas by an offline Node
+pipeline — they are not drawn at runtime. Changing which stories are painted in
+the CMS therefore takes two steps:
+
+```bash
+npm run content:sync   # active collection -> data/vase-panels.json
+npm run amphora        # repaint the textures, then verify them
+```
+
+and the regenerated files under `public/models/amphora/` are committed. The CMS
+says so on the collections page. Everything else — publishing, editing,
+unpublishing, reordering — takes effect immediately.
+
+Figures live in `content/figures/<slug>.png`; see the README there.
+
+## Documentation
+
+- [`docs/cms.md`](docs/cms.md) — architecture, workflows, deployment
+- [`docs/amphora-3d.md`](docs/amphora-3d.md) — the 3D vessel
+- [`docs/amphora-asset-pipeline.md`](docs/amphora-asset-pipeline.md) — texture bake
+- [`docs/homepage-backdrop.md`](docs/homepage-backdrop.md) — the frieze backdrop
+
+## Deployment
+
+Vercel, with any hosted Postgres. See
+[Deployment](docs/cms.md#deployment) for the environment variables, the
+migration step and the media-storage setup.
