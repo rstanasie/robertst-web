@@ -14,7 +14,18 @@ export const revalidate = 3600;
  */
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const base = siteUrl();
-  const stories = await listPublishedSlugs();
+
+  // This route is prerendered, so an unreachable database would otherwise fail
+  // the whole build — for a file that is an SEO courtesy, not correctness. It
+  // degrades to the static routes instead and picks the stories up on the next
+  // revalidation.
+  let stories: Awaited<ReturnType<typeof listPublishedSlugs>> = [];
+
+  try {
+    stories = await listPublishedSlugs();
+  } catch (error) {
+    console.warn("sitemap: could not read published stories, listing static routes only", error);
+  }
 
   return [
     { url: base, changeFrequency: "weekly", priority: 1 },
