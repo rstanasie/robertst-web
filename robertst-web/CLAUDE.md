@@ -51,6 +51,11 @@ seed fixtures only. Full architecture: `docs/cms.md`.
 - `app/myths/[slug]/page.tsx` — public story, or the working draft under an
   authenticated Draft Mode preview (`lib/preview.ts` requires *both* the
   draft-mode cookie and a live session).
+- `lib/spin/*` — which story a spin lands on. The outcome is **chosen before the
+  vessel moves** and the glide is then planned to arrive exactly there; the
+  physics no longer decides the story. Repeat, sealed-streak and
+  readable-within-three protections, all in one `SPIN_RULES` object. Full
+  architecture: `docs/spin.md`.
 
 In Next 16 `params` is a Promise — dynamic pages must be `async` and
 `await params`. Prisma 7 keeps connection URLs in `prisma.config.ts`, not in the
@@ -59,7 +64,9 @@ schema, and connects through a driver adapter (`lib/db.ts`).
 **The amphora needs a rebuild step.** Its painted figures are baked into a
 texture atlas offline. The CMS owns *which* stories are painted
 (`CollectionEntry.amphoraSlot`); repainting is
-`npm run content:sync && npm run amphora`, and the textures are committed.
+`npm run content:sync && npm run amphora && npm run amphora:frames`, and the
+textures and frames are committed. The last step re-renders the 2D fallback from
+the model it just painted; skip it and readers without WebGL see the old vase.
 Figures are files at `content/figures/<slug>.png`.
 
 Imports use the `@/*` path alias mapped to the repo root (e.g. `@/lib/cms/stories`, `@/components/Amphora`).

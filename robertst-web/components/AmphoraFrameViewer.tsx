@@ -16,7 +16,7 @@ export default function AmphoraFrameViewer({ angle }: { angle: number }) {
   return (
     <Image
       src={frameSrc(angleToFrameIndex(angle))}
-      alt="A painted Greek amphora."
+      alt="A painted Greek Amphora."
       fill
       sizes="(max-width: 640px) 70vw, 20rem"
       unoptimized

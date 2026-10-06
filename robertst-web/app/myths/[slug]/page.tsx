@@ -116,7 +116,7 @@ export default async function MythPage({ params }: Params) {
         <ShareStory title={card.title} teaser={card.excerpt} path={`/myths/${card.slug}`} />
 
         <Link href="/" className="myth-read__back">
-          Back to the amphora
+          Back to the Amphora
         </Link>
       </main>
     </>

@@ -127,7 +127,7 @@ function AmphoraModelViewer({ angleRef, isActive, onError }: Props) {
   if (state.status !== "ready") {
     return (
       <p className="absolute inset-0 grid place-items-center text-center text-sm opacity-70">
-        {state.status === "loading" ? "Shaping the amphora…" : "Could not load the amphora."}
+        {state.status === "loading" ? "Shaping the Amphora…" : "Could not load the Amphora."}
       </p>
     );
   }
@@ -140,16 +140,26 @@ function AmphoraModelViewer({ angleRef, isActive, onError }: Props) {
         gl={{ antialias: true, alpha: true, toneMapping: NeutralToneMapping }}
         camera={{ position: [0, 0, CAMERA_DISTANCE], fov: CAMERA_FOV }}
       >
-        {/* Sky-to-ground fill stands in for a room: cool from above, warm bounce
-            from below. A flat ambient term gives the dead, evenly-lit look of a
-            render, not of an object sitting somewhere. */}
-        <hemisphereLight args={["#9ea8bd", "#4d3324", 1.35]} />
-        {/* One soft key, a cool rim to separate the shoulder from the background,
-            and a weak warm bounce. Intensities stay low because a broad rough
-            surface blows out long before a smooth one does. */}
-        <directionalLight position={[2.4, 2.9, 3.6]} intensity={1.55} color="#fff5e6" />
-        <directionalLight position={[-3, 0.9, 1.4]} intensity={0.55} color="#b8c9f0" />
-        <directionalLight position={[-0.8, -1.6, 2.2]} intensity={0.28} color="#fac79e" />
+        {/* Sky-to-ground fill stands in for the place it is standing in: night
+            sky from above, grey stone bounce from the column below. A flat
+            ambient term gives the dead, evenly-lit look of a render, not of an
+            object sitting somewhere.
+
+            The ground half used to be terracotta, which was right when the
+            vessel was terracotta and is wrong now: a brown bounce under a
+            sandy pot drags its lower body back toward the orange the clay no
+            longer is. */}
+        <hemisphereLight args={["#9fb2ce", "#4b4a47", 1.35]} />
+        {/* One soft key, a cool rim to separate the shoulder from the sky, and
+            a weak bounce off the stone below. Intensities stay low because a
+            broad rough surface blows out long before a smooth one does.
+
+            The bounce is only lightly warmed. The brick body reddens fast
+            under a warm bounce, and the point of a *soft* brick is that it
+            stays dusty rather than going back to terracotta. */}
+        <directionalLight position={[2.4, 2.9, 3.6]} intensity={1.55} color="#fff3dd" />
+        <directionalLight position={[-3, 0.9, 1.4]} intensity={0.55} color="#aec2ea" />
+        <directionalLight position={[-0.8, -1.6, 2.2]} intensity={0.26} color="#e4ddd2" />
 
         <RotatingModel model={state.model} angleRef={angleRef} isActive={isActive} />
       </Canvas>

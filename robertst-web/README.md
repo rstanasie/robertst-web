@@ -51,6 +51,7 @@ Nothing depends on Docker. Point `DATABASE_URL` at any Postgres and skip
 | `npm run content:sync` | Write the active collection to `data/vase-panels.json` |
 | `npm run amphora` | Rebuild and verify the 3D amphora textures |
 | `npm run backdrop` | Rebuild the homepage frieze tile |
+| `npm run sky` | Re-light the backdrop from `content/stage/night-temple.png` |
 
 ### Tests
 

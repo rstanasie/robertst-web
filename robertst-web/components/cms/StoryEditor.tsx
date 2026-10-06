@@ -301,7 +301,7 @@ export default function StoryEditor({
                 onChange={(event) => setExcerpt(event.target.value)}
               />
               <p className="cms-field__hint">
-                The teaser on the amphora, in the newsletter, and the fallback search description.
+                The teaser on the Amphora, in the newsletter, and the fallback search description.
               </p>
               {errors.excerpt && <p className="cms-field__error">{errors.excerpt}</p>}
             </div>

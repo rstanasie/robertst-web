@@ -94,7 +94,7 @@ export default async function Dashboard({
                     <div className="cms-flag">Unpublished changes</div>
                   )}
                   {story.inActiveCollection && (
-                    <div className="cms-flag cms-flag--vase">On the amphora</div>
+                    <div className="cms-flag cms-flag--vase">On the Amphora</div>
                   )}
                 </td>
 

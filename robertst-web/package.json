@@ -22,9 +22,11 @@
     "db:studio": "prisma studio",
     "cms:user": "node --import tsx --conditions=react-server scripts/cms/create-user.ts",
     "backdrop": "node scripts/backdrop/build-frieze.js",
+    "sky": "node scripts/stage/build-sky.js",
     "content:sync": "node --import tsx --conditions=react-server scripts/content/sync-vase.ts",
     "amphora": "node scripts/amphora/build.js && node scripts/amphora/verify.js",
     "amphora:verify": "node scripts/amphora/verify.js",
+    "amphora:frames": "node scripts/amphora/build-frames.js",
     "amphora:preview": "node scripts/amphora/preview.js"
   },
   "dependencies": {

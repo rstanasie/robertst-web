@@ -200,7 +200,7 @@ export async function setEntrySlot(
   slot: number | null,
 ): Promise<ActionResult<void>> {
   if (slot !== null && (!Number.isInteger(slot) || slot < 0 || slot >= VASE_SLOTS)) {
-    return fail("invalid", `The amphora has ${VASE_SLOTS} panels, numbered 0 to ${VASE_SLOTS - 1}.`);
+    return fail("invalid", `The Amphora has ${VASE_SLOTS} panels, numbered 0 to ${VASE_SLOTS - 1}.`);
   }
 
   return prisma.$transaction(async (tx) => {
