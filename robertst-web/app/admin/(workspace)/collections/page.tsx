@@ -28,7 +28,7 @@ export default async function Collections() {
           <p className="cms-eyebrow">Presentation</p>
           <h1>Collections</h1>
           <p>
-            The active collection is what the homepage presents. The amphora has {VASE_SLOTS}{" "}
+            The active collection is what the homepage presents. The Amphora has {VASE_SLOTS}{" "}
             painted panels — a property of the 3D model, not of the collection — so a collection may
             hold more stories than the vessel can carry.
           </p>
@@ -213,7 +213,7 @@ export default async function Collections() {
       {collections.length === 0 && <p className="cms-empty">No collections yet.</p>}
 
       <p className="cms-note">
-        <strong>Changing which stories are painted needs a texture rebuild.</strong> The amphora&rsquo;s
+        <strong>Changing which stories are painted needs a texture rebuild.</strong> The Amphora&rsquo;s
         figures are baked into an image at build time, not drawn at runtime. After changing panels,
         run <code>npm run content:sync &amp;&amp; npm run amphora</code> and commit the regenerated
         textures. Everything else here takes effect immediately.

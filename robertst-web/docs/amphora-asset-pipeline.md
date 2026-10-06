@@ -76,9 +76,9 @@ One 2048x1024 sheet, `v = 0` at the mouth:
 | 0.000 – 0.875 | The vessel body, mouth to foot |
 | 0.875 – 1.000 | Handle atlas: `u` runs along the arc, `v` around the girth |
 
-Within the body: black lip, glazed neck, a rosette chain on the shoulder, the
-figural panel across the belly, glazed lower body, a ray band above the foot, and
-a glazed foot. Boundaries are declared as vessel *heights* in `build-model.js`
+Within the body: a slipped lip and neck, a rosette chain on the shoulder, the
+figural panel across the belly, a slipped lower body, a ray band above the foot,
+and a slipped foot. Boundaries are declared as vessel *heights* in `build-model.js`
 and converted to `v` through the arc-length mapping, so moving the profile moves
 the bands with it.
 
@@ -100,16 +100,18 @@ sheet, and therefore too narrow once wrapped.
 
 | Sheet | Size | Purpose |
 | --- | --- | --- |
-| `amphora-basecolor.webp` | 2048x1024, q93 | Clay, glaze, added red and white, fire clouds, wear, baked occlusion |
+| `amphora-basecolor.webp` | 2048x1024, q93 | Clay, fields, ornament, added colour, fire clouds, wear, baked occlusion |
 | `amphora-roughness.webp` | 1024x512, q90 | glTF metallic-roughness; roughness in green |
 | `amphora-normal.webp` | 1024x512, q92 | Throwing ridges, clay grain, glaze relief |
 
 Three details that matter more than they look:
 
-**Roughness contrast, not roughness level.** Fired glaze keeps a low satin sheen
-(~0.55) while the reserved clay body is nearly matte (~0.94), and worn spots are
-rougher still. A single uniform roughness is what reads as plastic, however high
-you set it.
+**Roughness contrast, not roughness level.** The slipped surfaces keep a faint
+sheen (~0.76) while the reserved clay body is nearly matte (~0.94), and worn
+spots are rougher still. A single uniform roughness is what reads as plastic,
+however high you set it. The sheen is deliberately much lower than a black-glaze
+vase would carry: the drawings are matte umber, not fired glaze, and a highlight
+strong enough to flatter the slip would swamp them.
 
 **The roughness sheet is grayscale.** Lossy WebP subsamples chroma, which bled the
 unused channels into each other and put up to 0.18 of stray metalness on the clay.
@@ -123,6 +125,57 @@ scaled to hit a target mean tilt of 3.2°. Hand-picking absolute amplitudes got 
 strength wrong by more than an order of magnitude and corrugated the whole vessel
 like cardboard. `verify.js` asserts mean tilt stays under 6° and peak under 30°.
 
+### The palette
+
+Five material ids are rasterised before anything is shaded, and the shading pass
+runs over those masks rather than over a stack of colour blends — which is also
+what lets the roughness sheet be derived from exactly the masks the colour is.
+
+| Id | Where | Colour |
+| --- | --- | --- |
+| `CLAY` | the reserved ground, the panel the frieze stands on | `#be7f6e`, brick |
+| `GLAZE` | the broad fields: lip, neck, lower body, foot, handles | the same brick a shade deeper |
+| `ORNAMENT` | figures, rosettes, rays, encircling lines, the cords over a sealed panel | `#402b1d`, deep umber |
+| `RED` / `WHITE` | added accent lines and highlights | a redder umber, and bone white |
+| `PALE` | the unglazed underside of the foot | a paler, dustier brick |
+
+`GLAZE` and `ORNAMENT` were one id while the vessel was black-figure, because a
+black vase paints its fields and its drawings in the same slip. They had to part
+when the vessel stopped being black: the fields are now the body, and only the
+drawings are umber. Measured in CIE L*: body 58, fields 53, ornament 21. The 37
+points between body and ornament is what carries the frieze; the 5 between body
+and fields is the zoning.
+
+The frieze has a job beyond looking old: at arm's length the vessel is 320px
+wide and a drawn line is a few pixels of it, so the ornament is deliberately
+far darker than age would leave it. It is also given only about half the
+thinning and half the chipping the fields get — wear is allowed to soften a
+drawing, not to make it hard to read.
+
+### Age: sand and crazing
+
+Two things make the surface read as fired rather than modelled, and neither is
+a texture image.
+
+**Sand** is two scales at once: a per-texel hash for grit you only read as
+roughness, and `sandField` — a much coarser mottle — for the granularity you
+actually see. One scale alone fails in a specific way: fine noise disappears
+into the mipmaps at page size, and coarse noise alone reads as dirt.
+
+**Crazing** is cellular noise. Scatter one seed per cell of a grid and the set
+of points equidistant from their two nearest seeds *is* a crack network:
+irregular, fully connected, closing every cell. That last property is what hand
+-drawn cracks never manage and what makes a real craze pattern legible as one.
+`crazeAt()` returns the distance to that boundary; the shading pass darkens
+along it and `height()` cuts a groove there, because a crack that is only a dark
+line reads as a pattern printed on the clay rather than as a split in it.
+
+It is periodic in `u`. The sheet wraps around the vessel, so a non-tiling craze
+field would put a seam straight down the pot. `CRAZE_WIDTH` is in cell
+fractions, so the lines stay hairlines whatever the cell count — and they have
+to: a crack wide enough to notice on its own makes the vessel read as broken
+rather than as old.
+
 Sheets are generated as PNG (what Node can write losslessly) into a temp
 directory, then converted to WebP for shipping. Only the WebP files land in
 `public/`. The GLB declares `EXT_texture_webp` as **required** — three supports
@@ -133,8 +186,9 @@ WebP the loader would error into that fallback anyway.
 
 `figures.js` holds three scenes as lists of ops — `poly`, `stroke`, `ell` — in
 figure units with `y` up and `y = 0` on the ground line. Colours are named after
-the technique: `glaze` (black slip), `clay` (the reserved ground, which is how
-incised lines read), `red` and `white` (added colour, painted over fired glaze).
+the technique: `glaze` (the slip the drawing is painted in), `clay` (the reserved
+ground, which is how incised lines read), `red` and `white` (added colour over
+the slip). The names are historical; what they resolve to is the palette below.
 
 All three are scaled by the **same** factor, `panelHeight * 0.90 / 1.15`. Fitting
 each to its own bounding box instead makes whichever figure reaches highest come

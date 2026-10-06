@@ -22,11 +22,11 @@ export default async function Home() {
       <MythBackdrop />
 
       <main className="myth-stage">
-        <p data-stage="eyebrow">Our oldest stories, from an unknown beginning.</p>
+        <p data-stage="eyebrow">In the beginning, stories were sown in the mind.</p>
 
         <h1>Greek Myths</h1>
 
-        <p data-stage="lead">Grab the amphora.</p>
+        <p data-stage="lead">Spin the Amphora.</p>
 
         <Amphora week={view} />
       </main>

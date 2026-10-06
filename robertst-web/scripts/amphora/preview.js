@@ -10,6 +10,11 @@
 //
 // Reads the shipped asset, so what it renders is what the browser gets, WebP
 // compression included.
+//
+// `render(angle)` is exported, and AMPHORA_RENDER_WIDTH sets the raster size,
+// because build-frames.js turns the same renderer into the 2D fallback: the
+// frames a reader without WebGL sees have to be this vessel under these
+// lights, not a second opinion about what it looks like.
 
 const fs = require("fs");
 const os = require("os");
@@ -34,15 +39,15 @@ const CAMERA_DISTANCE = 2.05;
 const CAMERA_FOV = 34;
 const ASPECT = 7 / 10;
 const EXPOSURE = 1.0;
-const HEMISPHERE = { sky: [0.62, 0.66, 0.74], ground: [0.30, 0.20, 0.14], intensity: 1.35 };
+const HEMISPHERE = { sky: [0.62, 0.70, 0.81], ground: [0.29, 0.29, 0.28], intensity: 1.35 };
 const LIGHTS = [
-  { pos: [2.4, 2.9, 3.6], colour: [1.0, 0.96, 0.90], intensity: 1.55 },
-  { pos: [-3.0, 0.9, 1.4], colour: [0.72, 0.79, 0.94], intensity: 0.55 },
-  { pos: [-0.8, -1.6, 2.2], colour: [0.98, 0.78, 0.62], intensity: 0.28 },
+  { pos: [2.4, 2.9, 3.6], colour: [1.0, 0.95, 0.87], intensity: 1.55 },
+  { pos: [-3.0, 0.9, 1.4], colour: [0.68, 0.76, 0.92], intensity: 0.55 },
+  { pos: [-0.8, -1.6, 2.2], colour: [0.89, 0.87, 0.82], intensity: 0.26 },
 ];
 const NORMAL_SCALE = 0.6;
 
-const WIDTH = 360;
+const WIDTH = Number(process.env.AMPHORA_RENDER_WIDTH) || 360;
 const HEIGHT = Math.round(WIDTH / ASPECT);
 
 // --- glb -------------------------------------------------------------------
@@ -274,6 +279,10 @@ function render(angleDeg) {
   }
   return out;
 }
+
+module.exports = { render, WIDTH, HEIGHT };
+
+if (require.main !== module) return;
 
 const angles = ANGLES.length ? ANGLES.map(Number) : [0, 60, 120, 180, 240, 300];
 const strip = Buffer.alloc(WIDTH * angles.length * HEIGHT * 3);

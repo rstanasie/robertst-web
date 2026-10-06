@@ -7,9 +7,9 @@ frames — there is no CSS `rotateY()` trickery and no 3D geometry involved.
 For the 3D version see [`amphora-3d.md`](./amphora-3d.md); for how its assets are
 produced, [`amphora-asset-pipeline.md`](./amphora-asset-pipeline.md).
 
-The frames here are still the flat placeholder renders from before the 3D vessel was
-built, so the fallback does not yet match the default viewer's appearance. Re-rendering
-them from the current model would fix that — see the note under **Placeholder frames**.
+The frames are rendered from the shipped `amphora.glb` through the same software
+renderer, camera and lights as `preview.js`, so the fallback and the 3D viewer show
+the same vessel — see **Frame assets**.
 
 ## Files
 
@@ -50,24 +50,28 @@ frame swaps present atomically instead of async-decoding mid-spin.
 
 ## Frame assets
 
-Current frames are **placeholders**, not a real turntable. They were generated from a
-single still of the amphora with three markers (dark red, cream, black at 0°/120°/240°)
-composited onto the belly, positioned by `sin(theta)`, squashed horizontally by
-`cos(theta)`, and hidden on the back half. Rotation is therefore visible and verifiable,
-but the vessel's silhouette never actually turns.
+A real turntable, rendered offline:
 
-To replace them:
+```bash
+npm run amphora          # repaint the model and its sheets first
+npm run amphora:frames   # then re-render these 36 frames from it
+```
 
-1. Export a real 360° turntable at 10° steps as WebP.
-2. Name them `amphora-000.webp` … `amphora-350.webp` and drop them in the same folder.
-3. If the pixel dimensions change, update the `aspect-[7/10]` class on the drag surface
-   in `components/Amphora.tsx` so the box still matches the artwork.
-4. For a different frame count, change `FRAME_COUNT` in `lib/amphora.ts` —
-   `DEGREES_PER_FRAME`, the filenames and `FRAME_SOURCES` all follow.
+`scripts/amphora/build-frames.js` calls the renderer in `preview.js` once per angle —
+the same camera (34° at 2.05 units), the same lights as `AmphoraModelViewer`, the same
+shipped WebP textures. That is the whole point of sharing it: a fallback drawn any
+other way drifts from the 3D viewer every time the vessel is repainted, and the handle
+hit boxes in `lib/amphora.ts` are derived from *this* projection, so a fallback at a
+different camera would put the grab targets in the wrong place.
 
-Each frame is roughly 80 KB, about 2.8 MB for the set. That is acceptable for a
-fallback that most visitors never download, but if this ever becomes the primary
-renderer again, drop the frame count or the resolution.
+**Run it whenever the vessel is repainted.** Nothing enforces this — `amphora:verify`
+checks the model and its sheets, not the frames — so a collection change that is
+synced and baked but not re-framed leaves the fallback showing last week's vase.
+
+Frames are 720×1029 with alpha, about 18 KB each and 645 KB for the set. For a
+different frame count, change `FRAME_COUNT` in `lib/amphora.ts` and
+`scripts/amphora/build-frames.js`; `DEGREES_PER_FRAME`, the filenames and
+`FRAME_SOURCES` all follow. `AMPHORA_RENDER_WIDTH` sets the resolution.
 
 ## Shared rotation core
 

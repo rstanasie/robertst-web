@@ -56,7 +56,7 @@ export default async function Subscribe() {
         )}
 
         <Link href="/" className="myth-read__back">
-          Back to the amphora
+          Back to the Amphora
         </Link>
       </main>
     </>

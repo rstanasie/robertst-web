@@ -34,10 +34,15 @@ const NORMAL_H = 512;
 
 // --- material ids ----------------------------------------------------------
 const CLAY = 0;
-const GLAZE = 1;
+const GLAZE = 1;  // the broad slipped fields: lip, neck, lower body, foot
 const RED = 2;
 const WHITE = 3;
 const PALE = 4; // unglazed clay, e.g. the underside of the foot
+// Everything painted *on* the vessel — frieze figures, rosettes, rays, the
+// encircling lines, the cords over a sealed panel. Separated from GLAZE
+// because the fields and the ornament are no longer the same colour: the
+// fields are the body a shade deeper, the ornament is champagne over it.
+const ORNAMENT = 5;
 
 const id = new Uint8Array(SW * SH).fill(CLAY);
 
@@ -160,13 +165,13 @@ fillRows(S.BODY_V_MAX - 0.010, S.BODY_V_MAX, PALE);
 function encircle(v, thickness, value) {
   fillRows(v - thickness / 2, v + thickness / 2, value);
 }
-encircle(V.ornamentTop - 0.0035, 0.0045, GLAZE);
-encircle(V.ornamentBottom + 0.0035, 0.0045, GLAZE);
+encircle(V.ornamentTop - 0.0035, 0.0045, ORNAMENT);
+encircle(V.ornamentBottom + 0.0035, 0.0045, ORNAMENT);
 encircle(V.panelTop - 0.0016, 0.0022, RED);
-encircle(V.panelBottom + 0.0060, 0.0075, GLAZE);
+encircle(V.panelBottom + 0.0060, 0.0075, ORNAMENT);
 encircle(V.panelBottom + 0.0135, 0.0026, RED);
-encircle(V.lowerBottom + 0.0030, 0.0038, GLAZE);
-encircle(V.rayBottom + 0.0032, 0.0042, GLAZE);
+encircle(V.lowerBottom + 0.0030, 0.0038, ORNAMENT);
+encircle(V.rayBottom + 0.0032, 0.0042, ORNAMENT);
 encircle(V.footTop - 0.0090, 0.0026, RED);
 
 // --- rosette chain on the shoulder ----------------------------------------
@@ -182,15 +187,15 @@ encircle(V.footTop - 0.0090, 0.0026, RED);
 
   for (let i = 0; i < count; i++) {
     const cx = (i + 0.5) * step;
-    fillDisc(cx, cy, rx, ry, GLAZE);
+    fillDisc(cx, cy, rx, ry, ORNAMENT);
     for (let p = 0; p < 8; p++) {
       const a = (p / 8) * Math.PI * 2 + Math.PI / 8;
       fillDisc(cx + Math.cos(a) * rx * 0.60, cy + Math.sin(a) * ry * 0.60, rx * 0.26, ry * 0.26, CLAY);
     }
     fillDisc(cx, cy, rx * 0.30, ry * 0.30, CLAY);
-    fillDisc(cx, cy, rx * 0.13, ry * 0.13, GLAZE);
+    fillDisc(cx, cy, rx * 0.13, ry * 0.13, ORNAMENT);
     // linking dots between rosettes
-    fillDisc(cx + step / 2, cy, rx * 0.15, ry * 0.15, GLAZE);
+    fillDisc(cx + step / 2, cy, rx * 0.15, ry * 0.15, ORNAMENT);
   }
 }
 
@@ -211,7 +216,7 @@ encircle(V.footTop - 0.0090, 0.0026, RED);
       [cx + half * 0.34, Y(vTop) + 6],
       [cx, Y(vTop)],
       [cx - half * 0.34, Y(vTop) + 6],
-    ], GLAZE);
+    ], ORNAMENT);
   }
 }
 
@@ -349,7 +354,7 @@ for (const [index, panel] of PANELS.entries()) {
       for (let x = Math.floor(left); x < Math.ceil(left + drawW); x++) {
         const u = (x + 0.5 - left) / drawW;
         if (u < 0 || u >= 1) continue;
-        if (sample(st.figure, st.w, st.h, u, v) > 0.5) put(x, y, GLAZE);
+        if (sample(st.figure, st.w, st.h, u, v) > 0.5) put(x, y, ORNAMENT);
         else if (sample(st.incision, st.w, st.h, u, v) > 0.5) put(x, y, CLAY);
       }
     }
@@ -362,7 +367,7 @@ for (const [index, panel] of PANELS.entries()) {
   const baseY = Y(groundV);
 
   const to = (p) => [cx + p[0] * unit * sx, baseY - p[1] * unit * pxV];
-  const paint = (c) => ({ glaze: GLAZE, clay: CLAY, red: RED, white: WHITE }[c]);
+  const paint = (c) => ({ glaze: ORNAMENT, clay: CLAY, red: RED, white: WHITE }[c]);
 
   for (const op of panel.ops) {
     if (op.k === "poly") fillPoly(op.pts.map(to), paint(op.c));
@@ -387,8 +392,8 @@ for (const [index, panel] of PANELS.entries()) {
     const yBottom = Y(V.panelBottom - 0.020);
     const cordW = 0.0095 * sx;
 
-    // Rasterised with a marker value rather than straight to GLAZE: the veiled
-    // figure underneath is glaze too, so a before/after diff would miss exactly
+    // Rasterised with a marker value rather than straight to ORNAMENT: the
+    // veiled figure under it is ornament too, so a diff would miss exactly
     // the pixels where the cords cross it — and those are the ones that have to
     // survive the blur.
     const CORD = 200;
@@ -402,7 +407,7 @@ for (const [index, panel] of PANELS.entries()) {
     for (let i = 0; i < id.length; i++) {
       if (id[i] === CORD) {
         crisp[i] = 1;
-        id[i] = GLAZE;
+        id[i] = ORNAMENT;
       }
     }
 
@@ -438,7 +443,7 @@ for (const [index, panel] of PANELS.entries()) {
   const gy = Y(V.panelTop + 0.042);
   for (let i = 0; i < 5; i++) {
     const mark = marks[(seed * (i + 1) * 5 + i * i) % marks.length];
-    strokePath(mark.map(([mx, my]) => [gx + mx * glyphW, gy + (1 - my) * glyphH]), 0.0026 * sx, 0, GLAZE);
+    strokePath(mark.map(([mx, my]) => [gx + mx * glyphW, gy + (1 - my) * glyphH]), 0.0026 * sx, 0, ORNAMENT);
     gx += glyphW * 1.9;
   }
 }
@@ -490,6 +495,8 @@ function field(w, h, freqU, freqV, seed, octaves) {
 const cloudField = field(256, 128, 4, 3, 1301, 4);
 const thinField = field(512, 256, 17, 12, 5507, 3);
 const chipField = field(1536, 768, 150, 96, 9109, 2);
+const sandField = field(1024, 512, 190, 118, 6133, 2);
+const crazeField = field(128, 64, 5, 4, 3719, 3);
 const lossField = field(384, 192, 26, 18, 7331, 3);
 const stainField = field(256, 128, 9, 7, 6113, 4);
 const dampField = field(128, 64, 3, 3, 3301, 2);
@@ -543,17 +550,90 @@ const sampleAO = (u, v) => {
 
 // --- palette (sRGB) --------------------------------------------------------
 const mix = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
-const CLAY_COOL = [176, 91, 41];
-const CLAY_BASE = [205, 116, 55];
-const CLAY_WARM = [227, 155, 92];
-const CLAY_PALE = [201, 149, 105];
-const GLAZE_DEEP = [22, 18, 17];
-const GLAZE_THIN = [104, 55, 31];
-const GLAZE_BARE = [147, 84, 46];
-const ADDED_RED = [152, 55, 33];
-const ADDED_WHITE = [227, 214, 187];
-const CHIP_EDGE = [163, 96, 58];
-const ENCRUST = [198, 186, 163];
+// Two families. The body is a soft brick throughout — the broad slipped fields
+// differ from the reserved ground only by a shade, enough to keep the vessel's
+// zones readable without the fields reading as a second colour. Everything
+// painted on it is umber.
+//
+// The umber is dark enough that the frieze reads across a room, which is the
+// whole job of a figure band: at arm's length the vessel is 320px wide and the
+// drawings are a few pixels of line. The risk the depth brings is the opposite
+// one — push the umber much further and the vessel is a black-figure vase. It stays this side of that line by keeping the body
+// dusty rather than orange and the umber brown rather than black. The dusty
+// part is mostly one number — the gap between green and blue. Widen it and the
+// clay slides straight back to terracotta.
+//
+// Measured in CIE L*: body 58, fields 53, ornament 21. The 26 points between
+// body and ornament is what carries the frieze; the 6 between body and fields
+// is the zoning.
+const CLAY_COOL = [162, 104, 90];
+const CLAY_BASE = [190, 127, 110]; // #be7f6e, the vessel's named body colour
+const CLAY_WARM = [212, 150, 130];
+const CLAY_PALE = [203, 165, 148];
+const FIELD_DEEP = [166, 105, 91];
+const FIELD_THIN = [185, 122, 106];
+const SLIP_FULL = [64, 43, 29]; // #402b1d, the umber of the drawings
+const SLIP_THIN = [92, 66, 45];
+const SLIP_BARE = [124, 88, 61]; // worn back toward the brick under it
+const ADDED_RED = [116, 60, 38];
+const ADDED_WHITE = [230, 218, 198];
+const CHIP_EDGE = [168, 112, 96];
+const ENCRUST = [203, 190, 170];
+/* Crazing is dirt in a hairline, not a shadow: it reads brown-black because
+   two centuries of it got in there, not because the crack is deep. */
+const CRACK_INK = [66, 44, 30];
+
+/* ── Craquelure ──────────────────────────────────────────────────────────────
+   The web of hairline cracks a slip gets as it and the body it sits on age at
+   different rates. Cellular noise gives it for free: scatter a seed in every
+   cell of a grid, and the set of points equidistant from their two nearest
+   seeds *is* a crack network — irregular, fully connected, closing every cell,
+   which is exactly what a real craze pattern does and what hand-drawn cracks
+   never quite manage.
+
+   Periodic in u, because the sheet wraps round the vessel and a seam in the
+   crazing would be a seam straight down the pot.
+
+   CRAZE_WIDTH is in cell fractions, so the lines stay hairlines whatever the
+   cell count. Keep the cracks under the resolution of a glance: the moment
+   one is wide enough to see on its own, the vessel reads as broken rather
+   than as old. */
+const CRAZE_CELLS_U = 164;
+const CRAZE_CELLS_V = 82;
+const CRAZE_WIDTH = 0.05;
+
+function crazeAt(u, v) {
+  const cu = (((u % 1) + 1) % 1) * CRAZE_CELLS_U;
+  const cv = v * CRAZE_CELLS_V;
+  const ci = Math.floor(cu);
+  const cj = Math.floor(cv);
+
+  let nearest = Infinity;
+  let second = Infinity;
+
+  for (let dj = -1; dj <= 1; dj++) {
+    for (let di = -1; di <= 1; di++) {
+      const gi = ci + di;
+      const gj = cj + dj;
+      // Hash the wrapped column so the first and last columns of cells agree
+      // about where their seeds are.
+      const wrapped = ((gi % CRAZE_CELLS_U) + CRAZE_CELLS_U) % CRAZE_CELLS_U;
+      const dx = gi + S.hash2(wrapped, gj, 9371) - cu;
+      const dy = gj + S.hash2(wrapped, gj, 4517) - cv;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+
+      if (distance < nearest) {
+        second = nearest;
+        nearest = distance;
+      } else if (distance < second) {
+        second = distance;
+      }
+    }
+  }
+
+  const edge = second - nearest;
+  return edge < CRAZE_WIDTH ? 1 - edge / CRAZE_WIDTH : 0;
+}
 
 function shade(material, sx, sy) {
   const u = sx / SW;
@@ -563,22 +643,37 @@ function shade(material, sx, sy) {
   const grit = S.hash2(sx, sy, 7717);
   const wear = exposure(v);
 
+  // chips need two scales: where loss is plausible at all, and the fine
+  // speckle inside those zones. One field alone gives camouflage blotches.
+  const chipAt = () => chipField.sample(u, v) * 0.62
+    + Math.max(0, lossField.sample(u, v) - 0.52) * 0.72
+    + 0.16 * wear + 0.05 * (grit - 0.5);
+
+  // Loss exposes the body under whatever was laid over it, so both slipped
+  // families chip the same way and only their colours differ.
+  const chipped = (colour, chip, weight = 1) => {
+    if (chip <= 0.700) return colour;
+    const depth = Math.min(1, (chip - 0.700) / 0.075);
+    return mix(colour, mix(mix(colour, CHIP_EDGE, 0.7), CHIP_EDGE, depth * 0.8), Math.min(1, depth * 1.4) * weight);
+  };
+
   let colour;
-  if (material === GLAZE || material === RED) {
-    // Glaze fired unevenly and went red-brown where it was laid on thin. Wear
-    // takes it back to bare clay in patches.
-    // chips need two scales: where loss is plausible at all, and the fine
-    // speckle inside those zones. One field alone gives camouflage blotches.
-    const chip = chipField.sample(u, v) * 0.62
-      + Math.max(0, lossField.sample(u, v) - 0.52) * 0.72
-      + 0.16 * wear + 0.05 * (grit - 0.5);
-    const base = material === RED ? ADDED_RED : GLAZE_DEEP;
+  if (material === ORNAMENT || material === RED) {
+    // Umber slip over the clay. Laid on thin it lets the body through, and
+    // wear takes it back to the body altogether in patches — but far less of
+    // both than the fields get. Age is allowed to soften a drawing; it is not
+    // allowed to make it hard to read, and a frieze is the one thing on this
+    // vessel that has a job beyond looking old.
     const thinness = Math.max(0, thin - 0.62) / 0.38;
-    colour = mix(base, material === RED ? mix(ADDED_RED, GLAZE_BARE, 0.5) : GLAZE_THIN, thinness * 0.72);
-    if (chip > 0.700) {
-      const depth = Math.min(1, (chip - 0.700) / 0.075);
-      colour = mix(colour, mix(mix(colour, CHIP_EDGE, 0.7), CHIP_EDGE, depth * 0.8), Math.min(1, depth * 1.4));
-    }
+    const base = material === RED ? ADDED_RED : SLIP_FULL;
+    colour = mix(base, material === RED ? mix(ADDED_RED, SLIP_BARE, 0.5) : SLIP_THIN, thinness * 0.45);
+    colour = chipped(colour, chipAt(), 0.55);
+  } else if (material === GLAZE) {
+    // The broad fields: the same clay fired a shade deeper and smoother, so
+    // the vessel keeps its zones without keeping its black.
+    const thinness = Math.max(0, thin - 0.62) / 0.38;
+    colour = mix(FIELD_DEEP, FIELD_THIN, thinness * 0.72);
+    colour = chipped(colour, chipAt());
   } else if (material === WHITE) {
     const flake = chipField.sample(u, v) * 0.7 + Math.max(0, lossField.sample(u, v) - 0.55) * 0.8 + 0.14 * wear;
     colour = mix(ADDED_WHITE, mix(ADDED_WHITE, CLAY_WARM, 0.7), Math.min(1, Math.max(0, flake - 0.60) / 0.24));
@@ -597,9 +692,27 @@ function shade(material, sx, sy) {
   const crust = Math.max(0, stain - 0.60) / 0.40 * (0.30 + 0.55 * Math.max(0, (v - 0.30) / 0.58));
   colour = mix(colour, ENCRUST, Math.min(0.26, crust * 0.34));
 
-  // clay inclusions
-  const speck = (grit - 0.5) * (material === GLAZE ? 1.6 : 3.2);
-  colour = [colour[0] + speck, colour[1] + speck * 0.85, colour[2] + speck * 0.7];
+  // Clay inclusions, and the sand in the body. Two scales deliberately: the
+  // per-texel hash is the grit you only read as texture, and sandField is the
+  // coarser mottle you can actually see, which is the difference between a
+  // surface that looks gritty and one that looks noisy.
+  const slipped = material === GLAZE || material === ORNAMENT || material === RED;
+  const speck = (grit - 0.5) * (slipped ? 2.4 : 5.0);
+  const sand = (sandField.sample(u, v) - 0.5) * (slipped ? 5 : 11);
+  colour = [
+    colour[0] + speck + sand,
+    colour[1] + (speck + sand) * 0.85,
+    colour[2] + (speck + sand) * 0.7,
+  ];
+
+  // Crazing, over everything: it is a fault in the surface, so it crosses the
+  // frieze and the fields alike rather than stopping politely at an edge. The
+  // large-scale field is what keeps it from being an even mesh — real crazing
+  // is dense in some zones and almost absent in others.
+  const craze = crazeAt(u, v) * (0.35 + 0.65 * crazeField.sample(u, v)) * (0.75 + 0.45 * wear);
+  if (craze > 0) {
+    colour = mix(colour, CRACK_INK, Math.min(0.42, craze * 0.42));
+  }
 
   // baked occlusion and a slow overall value drift
   const ao = sampleAO(u, v) * (0.965 + 0.07 * damp);
@@ -625,7 +738,7 @@ for (let y = 0; y < H; y++) {
         r += c[0];
         g += c[1];
         b += c[2];
-        if (material === GLAZE || material === RED) glaze += 1;
+        if (material === GLAZE || material === ORNAMENT || material === RED) glaze += 1;
       }
     }
     const n = SS * SS;
@@ -740,11 +853,15 @@ if (sealedRects.length > 0) {
 }
 
 // --- roughness (glTF metallicRoughness: G = roughness, B = metalness) ------
-// The single most important value here is the *contrast*: fired glaze keeps a
-// low satin sheen, the reserved clay body is almost fully matte, and worn spots
-// are rougher still. Uniform roughness is what reads as plastic.
+// The single most important value here is the *contrast*: the slipped surfaces
+// keep a faint sheen, the reserved clay body is almost fully matte, and worn
+// spots are rougher still. Uniform roughness is what reads as plastic.
+//
+// The sheen is much lower than a black-glaze vase would carry. A champagne
+// slip this close in value to the body cannot also be glossy without the
+// highlight swamping the drawing it is supposed to show.
 const CLAY_ROUGH = 0.94;
-const GLAZE_ROUGH = 0.55;
+const GLAZE_ROUGH = 0.76;
 const WORN_ROUGH = 0.985;
 const roughness = Buffer.alloc(ROUGH_W * ROUGH_H * 3);
 const scaleX = W / ROUGH_W;
@@ -823,9 +940,12 @@ function height(x, y) {
   let h = amplitude * Math.sin(bodyV * density) * (v < S.BODY_V_MAX ? 1 : 0.3);
 
   h += 2.6 * (dentField.sample(u, v) - 0.5);
-  h += 0.9 * (grainField.sample(u, v) - 0.5);
-  h += 0.35 * (S.hash2(x, y, 1553) - 0.5);
+  h += 1.5 * (grainField.sample(u, v) - 0.5);
+  h += 0.5 * (S.hash2(x, y, 1553) - 0.5);
   h += 1.4 * glazeSoft[y * NORMAL_W + x];
+  // The crack is a groove, not just a dark line. Without this it reads as a
+  // pattern printed on the clay rather than as a split in it.
+  h -= 2.0 * crazeAt(u, bodyV);
   return h;
 }
 

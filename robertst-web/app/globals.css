@@ -27,59 +27,44 @@ body {
 
 
 /* ─────────────────────────────────────────────────────────────────────────────
-   Homepage: the myth procession
+   The night sky
    ────────────────────────────────────────────────────────────────────────────
 
-   Three stacked layers, painted by <MythBackdrop />:
+   Four stacked layers, painted by <MythBackdrop />:
 
-     .myth-backdrop            the flat sea-blue ground
-     .myth-backdrop__weave       rotated frame, oversized to cover the corners
-       .myth-backdrop__bands       the hollow bands and their hairline borders
-       .myth-backdrop__frieze      the Greek procession, tiled along the bands
-     .myth-backdrop__vignette  a soft lift toward the centre, plus edge falloff
+     .myth-backdrop            the flat midnight ground, and the fallback
+     .myth-backdrop__sky         the photograph, cover-sized and never stretched
+     .myth-backdrop__mist        a transparent drift of cloud — the one moving
+                                 thing, because the photograph is flattened and
+                                 its own clouds cannot be animated apart from it
+     .myth-backdrop__vignette  edge falloff, and a slow darkening under the stage
 
-   Rotating the frame rather than the gradients is what keeps the bands and the
-   frieze aligned: inside that frame the bands are simply horizontal and the
-   frieze tile is a plain vertical repeat. Making them two layers rather than
-   two backgrounds on one layer is what lets the borders and the illustrations
-   carry different weights.
+   The photograph is 1750x899, so it is far wider than it is tall: on a phone
+   held upright, cover sizing scales it until only a narrow slice shows. The
+   slice is chosen with --sky-x, which walks right as the viewport narrows —
+   away from the fortress on the left edge and toward the open sky the vessel
+   needs behind it. The fortress going partly out of frame on a phone is the
+   intended trade, not an accident of cropping.
 
    Tuning, all on .myth-backdrop:
-     --band-angle     band direction; negative rises to the right
-     --band-pitch     one band plus its gutter; band width and the frieze both
-                      scale with it, so this is the one dial for stripe width
-     --band-fill      share of the pitch the band itself occupies. Must match
-                      BAND / PITCH in build-frieze.js, which is where the tile
-                      puts its artwork — change one and regenerate the other.
-     --band-rule      thickness of the two hairline borders
-     --band-edge      border colour        --band-wash  the hollow interior
-     --band-opacity   weight of the bands
-     --frieze-opacity weight of the illustrations
-     --focus-*        centre and radius of the light behind the amphora
-
-   Illustration density and the order of the motifs are not CSS: they live in
-   scripts/backdrop/build-frieze.js (TILE_W, FIGURE_H, and the two renderRow
-   calls). Run `npm run backdrop` after changing them.
+     --sky-x, --sky-y  which part of the photograph survives the crop
+     --sky-dim         how far the photograph is pulled down toward the ground
+     --mist-opacity    weight of the drifting cloud at its fullest
+     --focus-*         centre and radius of the darkening behind the vessel
    ──────────────────────────────────────────────────────────────────────────── */
 
 .myth-backdrop {
   --ground: var(--myth-navy);
 
-  --band-angle: -32deg;
-  --band-pitch: 230px;
-  --band-fill: 0.72;
-  --band-width: calc(var(--band-pitch) * var(--band-fill));
-  --band-rule: 2px;
-  --band-edge: rgba(242, 233, 219, 0.92);
-  --band-wash: rgba(196, 151, 93, 0.10);
-  /* Texture, not content: the bands and the procession sit well below the
-     vessel and the type in the visual order. */
-  --band-opacity: 0.13;
-  --frieze-opacity: 0.075;
+  --sky-x: 34%;
+  --sky-y: 42%;
+  --sky-dim: 0.1;
+
+  --mist-opacity: 0.3;
 
   --focus-x: 50%;
-  --focus-y: 52%;
-  --focus-radius: 68%;
+  --focus-y: 54%;
+  --focus-radius: 72%;
 
   position: fixed;
   inset: 0;
@@ -88,84 +73,102 @@ body {
   background-color: var(--ground);
 }
 
-/* Oversized because rotating a viewport-sized box leaves its corners bare. */
-.myth-backdrop__weave {
-  position: absolute;
-  inset: -45%;
-  transform: rotate(var(--band-angle));
-}
-
-.myth-backdrop__weave > * {
+.myth-backdrop > * {
   position: absolute;
   inset: 0;
-  background-repeat: repeat;
 }
 
-.myth-backdrop__bands {
-  opacity: var(--band-opacity);
-  background-image: repeating-linear-gradient(
-    to bottom,
-    var(--band-edge) 0,
-    var(--band-edge) var(--band-rule),
-    var(--band-wash) var(--band-rule),
-    var(--band-wash) calc(var(--band-width) - var(--band-rule)),
-    var(--band-edge) calc(var(--band-width) - var(--band-rule)),
-    var(--band-edge) var(--band-width),
-    transparent var(--band-width),
-    transparent var(--band-pitch)
+/* image-set lets a phone take the 1000px cut and a desktop the full one, and
+   degrades to the wide file where it is not understood. */
+.myth-backdrop__sky {
+  background-image: image-set(
+    url("/images/stage/night-temple.webp") 1x,
+    url("/images/stage/night-temple-sm.webp") 0.52x
   );
+  background-position: var(--sky-x) var(--sky-y);
+  background-repeat: no-repeat;
+  background-size: cover;
 }
 
-/* The tile spans two pitches — one figural register, one ornamental — so
-   consecutive bands differ. Width is auto so the tile keeps its aspect. */
-.myth-backdrop__frieze {
-  opacity: var(--frieze-opacity);
-  background-image: url("/images/backdrop/myth-frieze.svg");
-  background-size: auto calc(var(--band-pitch) * 2);
+/* The photograph is bright enough on its own to compete with the champagne
+   type, so it is laid under a wash of the ground colour rather than being
+   re-exported darker — which keeps one file serving every treatment. */
+.myth-backdrop__sky::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--ground);
+  opacity: var(--sky-dim);
+}
+
+/* Two broad, soft bands of cloud with nothing in common but their slowness.
+   Blurred past the point where either has an edge, so what the eye gets is a
+   change in density rather than a shape moving. */
+.myth-backdrop__mist {
+  opacity: var(--mist-opacity);
+  background-image:
+    radial-gradient(
+      ellipse 60% 34% at 22% 72%,
+      rgba(206, 216, 233, 0.5) 0%,
+      rgba(206, 216, 233, 0) 70%
+    ),
+    radial-gradient(
+      ellipse 52% 30% at 78% 58%,
+      rgba(186, 199, 221, 0.42) 0%,
+      rgba(186, 199, 221, 0) 72%
+    );
+  filter: blur(26px);
+  animation: myth-mist 26s ease-in-out infinite;
 }
 
 .myth-backdrop__vignette {
-  position: absolute;
-  inset: 0;
   background-image:
     radial-gradient(
       ellipse var(--focus-radius) var(--focus-radius) at var(--focus-x) var(--focus-y),
-      rgba(19, 36, 61, 0.82) 0%,
-      rgba(19, 36, 61, 0.64) 38%,
-      rgba(19, 36, 61, 0.3) 64%,
-      rgba(19, 36, 61, 0) 88%
+      rgba(10, 23, 40, 0.5) 0%,
+      rgba(10, 23, 40, 0.34) 42%,
+      rgba(10, 23, 40, 0.12) 68%,
+      rgba(10, 23, 40, 0) 88%
     ),
     linear-gradient(
       to bottom,
-      rgba(6, 13, 24, 0.26) 0%,
-      rgba(6, 13, 24, 0) 22%,
-      rgba(6, 13, 24, 0) 64%,
-      rgba(6, 13, 24, 0.34) 100%
+      rgba(5, 12, 23, 0.4) 0%,
+      rgba(5, 12, 23, 0) 26%,
+      rgba(5, 12, 23, 0) 58%,
+      rgba(5, 12, 23, 0.52) 100%
     );
+}
+
+/* The breath. Two layers at two periods, neither a multiple of the other, so
+   they drift in and out of step and the scene never repeats visibly. Opacity
+   only: moving or scaling the sky would slide the constellations. */
+@keyframes myth-mist {
+  0%,
+  100% {
+    opacity: calc(var(--mist-opacity) * 0.52);
+  }
+  50% {
+    opacity: var(--mist-opacity);
+  }
 }
 
 /* The vignette radii are percentages of the viewport box, so on a tall narrow
    screen the same number reaches much further down the page than across it —
-   hence a smaller radius, not a larger one, as the viewport narrows. */
+   hence a smaller radius, not a larger one, as the viewport narrows. The crop
+   walks right at the same time, so the vessel keeps open sky behind it. */
 @media (max-width: 48rem) {
   .myth-backdrop {
-    --band-pitch: 156px;
-    --band-rule: 1.5px;
-    --focus-radius: 68%;
+    --sky-x: 42%;
+    --focus-radius: 66%;
   }
 }
 
 @media (max-width: 30rem) {
   .myth-backdrop {
-    --band-pitch: 124px;
-    --band-rule: 1px;
+    --sky-x: 52%;
+    --sky-y: 38%;
     --focus-radius: 56%;
-  }
-}
-
-@media (min-width: 100rem) {
-  .myth-backdrop {
-    --band-pitch: 286px;
+    --mist-opacity: 0.24;
   }
 }
 
@@ -178,7 +181,7 @@ html:has(.myth-backdrop) {
 
 body:has(.myth-backdrop) {
   color-scheme: dark;
-  background: #0b1626;
+  background: var(--myth-navy);
 }
 
 body:has(.myth-backdrop) header {
@@ -191,7 +194,7 @@ body:has(.myth-backdrop) header {
   font-size: 0.75rem;
   letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: rgba(216, 203, 184, 0.75);
+  color: rgba(185, 173, 151, 0.86);
 }
 
 body:has(.myth-backdrop) header a {
@@ -206,20 +209,20 @@ body:has(.myth-backdrop) header a:hover {
 /* ── The stage ───────────────────────────────────────────────────────────── */
 
 :root {
-  /* Mediterranean palette. Warm ivory and gold over a muted navy, with
-     terracotta borrowed from the vessel's own clay.
+  /* Night-sky palette. Champagne and dusty beige over midnight blue, with a
+     warm sandy tone for the two small decorative marks.
 
-     Contrast against --myth-navy, measured: ivory 14.4, soft 10.8, gold 6.5 —
-     all pass AA for body text. Bronze and terracotta land at 3.9, which is AA
-     for large text and UI only, so they carry borders, rules and marks and
-     never small copy. */
-  --myth-navy: #0e1b2e;
-  --myth-navy-2: #13243d;
-  --myth-ink: #f2e9db;
-  --myth-ink-soft: #d8cbb8;
-  --myth-gold: #c4975d;
-  --myth-bronze: #9e6c43;
-  --myth-terracotta: #b85e35;
+     Contrast against --myth-navy, measured: champagne 12.1, dusty 7.1, sand
+     6.6 — all pass AA for body text. The sand carried the vessel's own body
+     colour until the clay went green; the marks kept it, so the page type
+     stays one warm family rather than gaining a third hue. */
+  --myth-navy: #10243b;
+  --myth-navy-2: #16304d;
+  --myth-ink: #f0e2c7;
+  --myth-ink-soft: #b9ad97;
+  --myth-champagne: #f0e2c7;
+  --myth-sand: #c3ae8e;
+  --myth-stone: #8d8982;
 
   /* Fixed so .myth-stage can take exactly the rest of the viewport. */
   --myth-header-h: 3.5rem;
@@ -230,7 +233,7 @@ body:has(.myth-backdrop) header a:hover {
 .myth-stage {
   --ink: var(--myth-ink);
   --ink-muted: var(--myth-ink-soft);
-  --accent: var(--myth-gold);
+  --accent: var(--myth-champagne);
 
   display: flex;
   flex-direction: column;
@@ -262,7 +265,7 @@ body:has(.myth-backdrop) header a:hover {
   width: 4.5rem;
   height: 1px;
   margin: clamp(0.5rem, 1.4svh, 1.25rem) auto 0;
-  background: linear-gradient(to right, transparent, var(--myth-terracotta), transparent);
+  background: linear-gradient(to right, transparent, var(--myth-champagne), transparent);
 }
 
 /* Stretch, do not shrink-wrap. As a flex item in a centred column the section
@@ -319,9 +322,9 @@ body:has(.myth-backdrop) header a:hover {
   pointer-events: none;
   background: radial-gradient(
     ellipse 50% 44% at 50% 64%,
-    rgba(196, 151, 93, 0.22) 0%,
-    rgba(184, 94, 53, 0.11) 44%,
-    rgba(196, 151, 93, 0) 76%
+    rgba(240, 226, 199, 0.18) 0%,
+    rgba(195, 174, 142, 0.09) 44%,
+    rgba(240, 226, 199, 0) 76%
   );
   opacity: 0.6;
   transition: opacity 480ms ease, transform 480ms ease;
@@ -337,6 +340,107 @@ body:has(.myth-backdrop) header a:hover {
   opacity: 1;
   transform: scale(1.07);
   transition-duration: 180ms;
+}
+
+/* ── The aura ────────────────────────────────────────────────────────────────
+   A champagne warmth held close to the clay, as if the vessel had taken some
+   of the day's heat and were giving it back. Deliberately not a halo: the
+   ellipse is the vessel's own proportion, it reaches only a little past the
+   silhouette, and it has no edge anywhere — a hard rim would read as a
+   selection ring rather than as light.
+
+   Inside the stage box, so it travels with the vessel as it drifts, and under
+   everything else in the box, so the clay is never washed out by it. */
+.myth-stage [data-amphora="aura"] {
+  --aura: 0.42;
+
+  position: absolute;
+  inset: 2% -9%;
+  z-index: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse 38% 44% at 50% 48%,
+    rgba(240, 226, 199, 0.3) 0%,
+    rgba(240, 226, 199, 0.16) 38%,
+    rgba(222, 203, 170, 0.07) 62%,
+    rgba(240, 226, 199, 0) 82%
+  );
+  opacity: var(--aura);
+  animation: myth-aura 21s ease-in-out infinite;
+}
+
+/* A hand on the clay brings the warmth up, the way the under-light does. */
+.myth-stage [data-amphora="stage"]:hover [data-amphora="aura"],
+.myth-stage [data-amphora="stage"]:focus-visible [data-amphora="aura"] {
+  --aura: 0.58;
+}
+
+.myth-stage [data-amphora="stage"][data-holding] [data-amphora="aura"] {
+  --aura: 0.68;
+}
+
+/* 21s against the mist's 26s: coprime enough that the two never settle into a
+   shared rhythm, which is what keeps the scene from reading as a loop. */
+@keyframes myth-aura {
+  0%,
+  100% {
+    opacity: calc(var(--aura) * 0.62);
+  }
+  50% {
+    opacity: var(--aura);
+  }
+}
+
+/* ── The column ──────────────────────────────────────────────────────────────
+   The vessel stands on it, so the two have to meet exactly. The model is one
+   unit tall and centred on the origin, seen through a 34deg lens at 2.05
+   units: that puts its foot at 89.9% of the stage box's height and makes the
+   foot ring 33% of its width. The capital is set a shade above the first and a
+   shade wider than the second, so the clay sits down onto stone rather than
+   hovering over it. Those two numbers come from the same projection as
+   handleHitBoxes() in lib/amphora.ts — if the camera moves, both move.
+
+   The shaft is cut off rather than finished: it fades into the night before it
+   reaches the story text, which is also what keeps it from competing with it.
+   z-index: -1 puts it behind the result panel for the same reason.
+
+   The fade holds full opacity for the first half. Starting it higher let the
+   lit cloud behind the stone through while the carving was still the thing
+   being looked at, and a half-transparent column reads as fog rather than as
+   distance. */
+.myth-column {
+  position: absolute;
+  top: 88.8%;
+  left: 50%;
+  z-index: -1;
+  width: 54%;
+  height: 32%;
+  transform: translateX(-50%);
+  pointer-events: none;
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 1) 0%,
+    rgba(0, 0, 0, 1) 52%,
+    rgba(0, 0, 0, 0.62) 74%,
+    rgba(0, 0, 0, 0) 98%
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 1) 0%,
+    rgba(0, 0, 0, 1) 52%,
+    rgba(0, 0, 0, 0.62) 74%,
+    rgba(0, 0, 0, 0) 98%
+  );
+  opacity: 0.88;
+}
+
+.myth-column svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  /* The stone sits in the same night air as everything else, so it takes the
+     scene's shadow rather than being drawn with one. */
+  filter: drop-shadow(0 6px 14px rgba(6, 13, 24, 0.55));
 }
 
 /* A hand on the clay steadies it. Pausing rather than resetting is the point —
@@ -388,7 +492,7 @@ body:has(.myth-backdrop) header a:hover {
   line-height: 1.5;
   letter-spacing: 0.02em;
   /* Measured 6.0 against the navy. */
-  color: rgba(216, 203, 184, 0.72);
+  color: rgba(185, 173, 151, 0.9);
   text-wrap: balance;
 }
 
@@ -440,7 +544,7 @@ body:has(.myth-backdrop) header a:hover {
    painted round a panel on the vase itself. Measured 4.9 against the navy, so
    it is still an indicator and not just a decoration. */
 .myth-stage [data-amphora="stage"]:focus-visible {
-  outline: 1.5px solid rgba(196, 151, 93, 0.85);
+  outline: 1.5px solid rgba(240, 226, 199, 0.8);
   outline-offset: 0.625rem;
   border-radius: 2px;
 }
@@ -457,6 +561,9 @@ body:has(.myth-backdrop) header a:hover {
    at 320px where a sealed teaser takes a third line under the state label. */
 .myth-stage [data-amphora="reveal"] {
   position: relative;
+  /* The stage box is positioned and the shaft hangs out of its bottom, so the
+     story text has to be lifted over it or the stone would cross the title. */
+  z-index: 1;
   font-family: var(--myth-display);
   min-height: 9.25rem;
   max-width: 40ch;
@@ -467,11 +574,10 @@ body:has(.myth-backdrop) header a:hover {
    surfaces rather than swapping its text in place.
 
    `backwards` rather than `both`: an animation filled forwards keeps applying
-   its end state for good, and would outrank the opacity the refusal note fades
-   these down to. Backwards fills only the delay, which is all that is wanted. */
-.myth-stage [data-amphora="reveal"] > *:not([data-amphora="refusal"]) {
+   its end state for good, and nothing could then fade these down. Backwards
+   fills only the delay, which is all that is wanted. */
+.myth-stage [data-amphora="reveal"] > * {
   animation: myth-surface 520ms cubic-bezier(0.22, 0.61, 0.36, 1) backwards;
-  transition: opacity 240ms ease;
 }
 
 @keyframes myth-surface {
@@ -494,7 +600,7 @@ body:has(.myth-backdrop) header a:hover {
   letter-spacing: 0.26em;
   text-indent: 0.26em;
   text-transform: uppercase;
-  color: rgba(216, 203, 184, 0.62);
+  color: rgba(185, 173, 151, 0.7);
 }
 
 .myth-stage [data-amphora="name"] {
@@ -510,7 +616,7 @@ body:has(.myth-backdrop) header a:hover {
   margin-top: 0.45rem;
   font-size: 0.9375rem;
   line-height: 1.55;
-  color: rgba(216, 203, 184, 0.88);
+  color: rgba(185, 173, 151, 0.95);
   animation-delay: 70ms;
 }
 
@@ -520,30 +626,80 @@ body:has(.myth-backdrop) header a:hover {
   animation-delay: 140ms;
 }
 
-/* The vessel's answer to a gesture that fell short. It takes the same place the
-   myth is given rather than a slot of its own, so nothing on the page moves:
-   the answer always arrives in one spot, and this is simply a different answer.
-   The myth underneath is faded rather than unmounted and comes back by itself. */
-.myth-stage [data-amphora="reveal"][data-refused] > *:not([data-amphora="refusal"]) {
-  opacity: 0;
-}
+/* Both of the vessel's answers — that a gesture fell short, and that a hand is
+   on the painted clay rather than on a handle. One element, because they are
+   now the same thing said about different hands: spoken at the height the hand
+   came down and on the side of the vessel it came down on.
 
-.myth-stage [data-amphora="refusal"] {
+   Beside the vessel rather than under it, because what either answer is about
+   is where you just put your hand. Inside the stage box so it travels with the
+   vessel and can be placed in its coordinates, but hung outside the box's edge
+   so it sits in the sky rather than across the clay.
+
+   The width is whatever the gutter allows: `100%` here is the stage box, so
+   `(100vw - 100%) / 2` is exactly the sky to one side of it. On a wide screen
+   that is plenty and either answer sets on one line; on a phone the gutter is
+   about 50px, the floor takes over and the note crosses the vessel's edge —
+   which is why it carries its own shadow and does not rely on what is behind
+   it being dark. */
+.myth-stage [data-amphora="note"] {
   position: absolute;
-  inset: 0;
-  display: grid;
-  place-items: center;
+  z-index: 2;
+  width: max-content;
+  max-width: max(9rem, calc((100vw - 100%) / 2 - 1.25rem));
+  transform: translateY(-50%);
   pointer-events: none;
+  font-family: var(--myth-display);
   font-style: italic;
   font-size: clamp(1.0625rem, min(3.4vw, 2.6svh), 1.25rem);
+  line-height: 1.35;
   letter-spacing: 0.01em;
-  color: rgba(242, 233, 219, 0.82);
-  /* Duration is set inline from REFUSAL_NOTE_MS, so the fade cannot outlast the
-     note or leave it hanging at full strength. */
-  animation: myth-refusal ease both;
+  color: var(--myth-champagne);
+  text-shadow:
+    0 1px 2px rgba(6, 13, 24, 0.9),
+    0 0 14px rgba(6, 13, 24, 0.85);
+  /* Duration is set inline from NOTE_MS, so the fade cannot outlast the note or
+     leave it hanging at full strength. */
+  animation: myth-note ease both;
 }
 
-@keyframes myth-refusal {
+.myth-stage [data-amphora="note"][data-side="left"] {
+  right: calc(100% + 0.75rem);
+  text-align: right;
+}
+
+.myth-stage [data-amphora="note"][data-side="right"] {
+  left: calc(100% + 0.75rem);
+  text-align: left;
+}
+
+/* On a phone there is no sky to hang it in. The vessel takes 297 of a 390px
+   screen, which leaves a 39px gutter either side — a note needs about 144px,
+   so hung outside the box it starts 117px off the edge of the screen and four
+   fifths of it is simply not there. Measured, not guessed.
+
+   So it comes inside and spans the vessel instead, still at the height of the
+   hand and still starting on the side the hand was on. It crosses the clay,
+   which is what the shadow it carries is for. */
+@media (max-width: 48rem) {
+  .myth-stage [data-amphora="note"][data-side="left"],
+  .myth-stage [data-amphora="note"][data-side="right"] {
+    left: 0;
+    right: 0;
+    width: auto;
+    max-width: none;
+  }
+
+  .myth-stage [data-amphora="note"][data-side="left"] {
+    text-align: left;
+  }
+
+  .myth-stage [data-amphora="note"][data-side="right"] {
+    text-align: right;
+  }
+}
+
+@keyframes myth-note {
   0% {
     opacity: 0;
     transform: translateY(0.3rem);
@@ -571,8 +727,8 @@ body:has(.myth-backdrop) header a:hover {
   background: linear-gradient(
       to right,
       transparent,
-      rgba(196, 151, 93, 0.42) 24%,
-      rgba(196, 151, 93, 0.42) 76%,
+      rgba(195, 174, 142, 0.42) 24%,
+      rgba(195, 174, 142, 0.42) 76%,
       transparent
     )
     center / 100% 1px no-repeat;
@@ -585,37 +741,66 @@ body:has(.myth-backdrop) header a:hover {
   width: 0.3125rem;
   height: 0.3125rem;
   transform: translate(-50%, -50%) rotate(45deg);
-  background: var(--myth-terracotta);
+  background: var(--myth-sand);
   opacity: 0.85;
 }
 
+/* The resting panel, when the vessel has already offered something readable.
+   Quiet on purpose: it is a way back, not a second invitation to spin. It
+   stands exactly where the fleuron would, so the space it needs is space the
+   panel had already reserved and nothing on the page moves. */
+.myth-stage [data-amphora="again"] {
+  max-width: 34ch;
+  font-size: 0.9375rem;
+  line-height: 1.5;
+  color: var(--ink-muted);
+}
+
+/* And when nothing on the vessel can be read at all. Said once, in the panel,
+   rather than left for the reader to discover by turning the pot five times. */
+.myth-stage [data-amphora="none"] {
+  max-width: 34ch;
+  font-size: 0.9375rem;
+  line-height: 1.55;
+  color: var(--ink-muted);
+  text-wrap: balance;
+}
+
 .myth-stage [data-amphora="index"] {
+  /* Its parent sets `flex: none` on every child, so the nav is never squeezed
+     and the list inside it never wraps — on a 390px phone the five titles made
+     one 457px line, which widened the page itself and took the whole centred
+     stage off-centre with it. Capping against the viewport rather than against
+     the parent is the point: the parent had already been stretched by this,
+     so `100%` would have measured the problem rather than solving it. The
+     2.5rem is the stage's own horizontal padding. */
+  max-width: calc(100vw - 2.5rem);
   font-family: var(--myth-utility);
   font-size: 0.6875rem;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: rgba(216, 203, 184, 0.6);
+  color: rgba(185, 173, 151, 0.74);
 }
 
 
 /* Muted beige at rest so the list reads as one quiet line under the vessel,
    and gold for whichever myth the amphora has settled on. */
 .myth-stage [data-amphora="index"] a {
-  color: rgba(216, 203, 184, 0.82);
-  text-decoration-color: rgba(196, 151, 93, 0.4);
+  color: rgba(185, 173, 151, 0.95);
+  text-decoration-color: rgba(240, 226, 199, 0.35);
   text-underline-offset: 0.32em;
 }
 
 .myth-stage [data-amphora="index"] a:hover {
   color: var(--myth-ink);
-  text-decoration-color: var(--myth-gold);
+  text-decoration-color: var(--myth-champagne);
 }
 
 /* A sealed story is in the week but will not open. It stays legible and
    linkable — the page it leads to explains the seal — but it is visibly not
    one of the ones you can start. */
 .myth-stage [data-amphora="index"] [data-sealed] a {
-  color: rgba(216, 203, 184, 0.62);
+  color: rgba(185, 173, 151, 0.7);
   text-decoration-style: dotted;
 }
 
@@ -623,15 +808,15 @@ body:has(.myth-backdrop) header a:hover {
   color: var(--myth-ink);
 }
 
-/* Last, so the settled myth stays gold even when it is one of the sealed two. */
+/* Last, so the settled myth stays lit even when it is one of the sealed two. */
 .myth-stage [data-amphora="index"] [data-current] a {
-  color: var(--myth-gold);
-  text-decoration-color: var(--myth-gold);
+  color: var(--myth-champagne);
+  text-decoration-color: var(--myth-champagne);
 }
 
 .myth-seal {
   margin-right: 0.3em;
-  color: var(--myth-terracotta);
+  color: var(--myth-sand);
   opacity: 0.85;
 }
 
@@ -675,13 +860,21 @@ body:has(.myth-backdrop) header a:hover {
 
   .myth-stage [data-amphora="stage"],
   .myth-stage [data-amphora="stage"]::before,
+  .myth-stage [data-amphora="aura"],
   .myth-stage [data-amphora="reveal"] > * {
     animation: none;
     transition: none;
   }
 
+  /* The scene keeps its depth and loses only its breath: the mist stays at the
+     weight it would otherwise average, rather than disappearing. */
+  .myth-backdrop__mist {
+    animation: none;
+    opacity: calc(var(--mist-opacity) * 0.76);
+  }
+
   /* The note still appears and goes; it just does so without the fade. */
-  .myth-stage [data-amphora="refusal"] {
+  .myth-stage [data-amphora="note"] {
     animation: none;
   }
 }
@@ -692,15 +885,15 @@ body:has(.myth-backdrop) header a:hover {
    too loud behind a column of text. */
 
 .myth-backdrop--quiet {
-  --band-opacity: 0.075;
-  --frieze-opacity: 0.045;
+  --sky-dim: 0.42;
+  --mist-opacity: 0.18;
   --focus-radius: 96%;
 }
 
 .myth-read {
   --ink: var(--myth-ink);
   --ink-muted: var(--myth-ink-soft);
-  --accent: var(--myth-gold);
+  --accent: var(--myth-champagne);
 
   display: flex;
   flex-direction: column;
@@ -722,7 +915,7 @@ body:has(.myth-backdrop) header a:hover {
   font-size: 0.6875rem;
   letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: rgba(216, 203, 184, 0.6);
+  color: rgba(185, 173, 151, 0.74);
 }
 
 .myth-read h1 {
@@ -789,7 +982,7 @@ body:has(.myth-backdrop) header a:hover {
   font-size: 0.6875rem;
   letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: rgba(216, 203, 184, 0.62);
+  color: rgba(185, 173, 151, 0.7);
 }
 
 .myth-part p + p {
@@ -830,7 +1023,7 @@ body:has(.myth-backdrop) header a:hover {
   display: inline-block;
   margin-top: 1.5rem;
   padding: 0.8125rem 1.75rem;
-  border: 1px solid rgba(196, 151, 93, 0.55);
+  border: 1px solid rgba(240, 226, 199, 0.5);
   border-radius: 999px;
   font-family: var(--myth-utility);
   font-size: 0.75rem;
@@ -843,8 +1036,8 @@ body:has(.myth-backdrop) header a:hover {
 }
 
 .myth-notice__cta:hover {
-  border-color: var(--myth-gold);
-  background: var(--myth-gold);
+  border-color: var(--myth-champagne);
+  background: var(--myth-champagne);
   color: var(--myth-navy);
 }
 
@@ -854,7 +1047,7 @@ body:has(.myth-backdrop) header a:hover {
   font-family: var(--myth-utility);
   font-size: 0.6875rem;
   letter-spacing: 0.08em;
-  color: rgba(216, 203, 184, 0.62);
+  color: rgba(185, 173, 151, 0.7);
 }
 
 .myth-notice--sealed {
@@ -875,7 +1068,7 @@ body:has(.myth-backdrop) header a:hover {
   font-size: 0.6875rem;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: rgba(216, 203, 184, 0.6);
+  color: rgba(185, 173, 151, 0.74);
 }
 
 .myth-read__dev {
@@ -884,27 +1077,27 @@ body:has(.myth-backdrop) header a:hover {
   align-items: center;
   gap: 0.5rem;
   padding: 1rem 1.25rem;
-  border: 1px dashed rgba(216, 203, 184, 0.2);
+  border: 1px dashed rgba(185, 173, 151, 0.24);
   border-radius: 0.5rem;
 }
 
 .myth-read__dev button {
   padding: 0.6rem 1.4rem;
-  border: 1px solid rgba(196, 151, 93, 0.45);
+  border: 1px solid rgba(240, 226, 199, 0.4);
   border-radius: 999px;
   font-family: var(--myth-utility);
   font-size: 0.75rem;
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--ink);
-  background: rgba(196, 151, 93, 0.06);
+  background: rgba(240, 226, 199, 0.06);
 }
 
 .myth-read__dev span {
   font-family: var(--myth-utility);
   font-size: 0.625rem;
   letter-spacing: 0.06em;
-  color: rgba(216, 203, 184, 0.62);
+  color: rgba(185, 173, 151, 0.7);
 }
 
 .myth-read a:not(.myth-notice__cta) {
