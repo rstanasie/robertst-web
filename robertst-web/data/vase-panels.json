@@ -1,29 +1,29 @@
 {
   "_generated": "npm run content:sync — generated from the active collection, do not edit",
-  "collection": "2026-w34",
+  "collection": "2026-w47",
   "panels": [
     {
-      "key": "athena-and-poseidon",
-      "name": "Athena and Poseidon",
+      "key": "zeus-law",
+      "name": "Zeus Law",
       "angle": 36,
       "slot": 0,
       "access": "preview",
-      "figure": "content/figures/athena-and-poseidon.png"
+      "figure": "content/figures/zeus-law.png"
     },
     {
-      "key": "zeus-and-hermes",
-      "name": "Zeus and Hermes",
+      "key": "dionysos-parents",
+      "name": "Dionysos's Parents",
       "angle": 108,
       "slot": 1,
       "access": "preview",
-      "figure": "content/figures/zeus-and-hermes.png"
+      "figure": "content/figures/dionysos-parents.png"
     },
     {
       "key": "icarus",
       "name": "Icarus",
       "angle": 180,
       "slot": 2,
-      "access": "preview",
+      "access": "locked",
       "figure": "content/figures/icarus.png",
       "airborne": true
     },
