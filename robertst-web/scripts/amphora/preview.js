@@ -39,11 +39,11 @@ const CAMERA_DISTANCE = 2.05;
 const CAMERA_FOV = 34;
 const ASPECT = 7 / 10;
 const EXPOSURE = 1.0;
-const HEMISPHERE = { sky: [0.62, 0.70, 0.81], ground: [0.29, 0.29, 0.28], intensity: 1.35 };
+const HEMISPHERE = { sky: [0.59, 0.67, 0.78], ground: [0.31, 0.29, 0.27], intensity: 1.07 };
 const LIGHTS = [
-  { pos: [2.4, 2.9, 3.6], colour: [1.0, 0.95, 0.87], intensity: 1.55 },
+  { pos: [2.4, 2.9, 3.6], colour: [1.0, 0.95, 0.84], intensity: 1.93 },
   { pos: [-3.0, 0.9, 1.4], colour: [0.68, 0.76, 0.92], intensity: 0.55 },
-  { pos: [-0.8, -1.6, 2.2], colour: [0.89, 0.87, 0.82], intensity: 0.26 },
+  { pos: [-0.8, -1.6, 2.2], colour: [0.93, 0.85, 0.76], intensity: 0.26 },
 ];
 const NORMAL_SCALE = 0.6;
 

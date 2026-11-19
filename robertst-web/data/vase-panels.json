@@ -3,20 +3,20 @@
   "collection": "2026-w34",
   "panels": [
     {
-      "key": "prometheus",
-      "name": "Prometheus",
+      "key": "athena-and-poseidon",
+      "name": "Athena and Poseidon",
       "angle": 36,
       "slot": 0,
       "access": "preview",
-      "figure": "content/figures/prometheus.png"
+      "figure": "content/figures/athena-and-poseidon.png"
     },
     {
-      "key": "dionysos",
-      "name": "Dionysos",
+      "key": "zeus-and-hermes",
+      "name": "Zeus and Hermes",
       "angle": 108,
       "slot": 1,
       "access": "preview",
-      "figure": "content/figures/dionysos.png"
+      "figure": "content/figures/zeus-and-hermes.png"
     },
     {
       "key": "icarus",

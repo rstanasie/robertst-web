@@ -149,17 +149,18 @@ function AmphoraModelViewer({ angleRef, isActive, onError }: Props) {
             vessel was terracotta and is wrong now: a brown bounce under a
             sandy pot drags its lower body back toward the orange the clay no
             longer is. */}
-        <hemisphereLight args={["#9fb2ce", "#4b4a47", 1.35]} />
+        <hemisphereLight args={["#96aac8", "#4e4a45", 1.07]} />
         {/* One soft key, a cool rim to separate the shoulder from the sky, and
             a weak bounce off the stone below. Intensities stay low because a
             broad rough surface blows out long before a smooth one does.
 
-            The bounce is only lightly warmed. The brick body reddens fast
-            under a warm bounce, and the point of a *soft* brick is that it
-            stays dusty rather than going back to terracotta. */}
-        <directionalLight position={[2.4, 2.9, 3.6]} intensity={1.55} color="#fff3dd" />
+            The sky half is weaker than it looks it should be. It is the only
+            cold light on the vessel and cold light desaturates: turned up to
+            where it reads as a convincing night fill, it takes the fire out
+            of the clay and the pot goes dusty. */}
+        <directionalLight position={[2.4, 2.9, 3.6]} intensity={1.93} color="#fff1d6" />
         <directionalLight position={[-3, 0.9, 1.4]} intensity={0.55} color="#aec2ea" />
-        <directionalLight position={[-0.8, -1.6, 2.2]} intensity={0.26} color="#e4ddd2" />
+        <directionalLight position={[-0.8, -1.6, 2.2]} intensity={0.26} color="#eddac2" />
 
         <RotatingModel model={state.model} angleRef={angleRef} isActive={isActive} />
       </Canvas>
