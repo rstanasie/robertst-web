@@ -212,15 +212,15 @@ body:has(.myth-backdrop) header a:hover {
   /* Night-sky palette. Champagne and dusty beige over midnight blue, with a
      warm sandy tone for the two small decorative marks.
 
-     Contrast against --myth-navy, measured: champagne 12.1, dusty 7.1, sand
+     Contrast against --myth-navy, measured: champagne 13.1, dusty 7.1, sand
      6.6 — all pass AA for body text. The sand carried the vessel's own body
      colour until the clay went green; the marks kept it, so the page type
      stays one warm family rather than gaining a third hue. */
   --myth-navy: #10243b;
   --myth-navy-2: #16304d;
-  --myth-ink: #f0e2c7;
+  --myth-ink: #f6ece0;
   --myth-ink-soft: #b9ad97;
-  --myth-champagne: #f0e2c7;
+  --myth-champagne: #f6ece0;
   --myth-sand: #c3ae8e;
   --myth-stone: #8d8982;
 
@@ -410,26 +410,28 @@ body:has(.myth-backdrop) header a:hover {
    distance. */
 .myth-column {
   position: absolute;
-  top: 88.8%;
+  top: 88.6%;
   left: 50%;
   z-index: -1;
-  width: 54%;
-  height: 32%;
+  width: 60%;
+  height: 58%;
   transform: translateX(-50%);
   pointer-events: none;
   -webkit-mask-image: linear-gradient(
     to bottom,
     rgba(0, 0, 0, 1) 0%,
-    rgba(0, 0, 0, 1) 52%,
-    rgba(0, 0, 0, 0.62) 74%,
-    rgba(0, 0, 0, 0) 98%
+    rgba(0, 0, 0, 1) 44%,
+    rgba(0, 0, 0, 0.72) 66%,
+    rgba(0, 0, 0, 0.3) 84%,
+    rgba(0, 0, 0, 0) 100%
   );
   mask-image: linear-gradient(
     to bottom,
     rgba(0, 0, 0, 1) 0%,
-    rgba(0, 0, 0, 1) 52%,
-    rgba(0, 0, 0, 0.62) 74%,
-    rgba(0, 0, 0, 0) 98%
+    rgba(0, 0, 0, 1) 44%,
+    rgba(0, 0, 0, 0.72) 66%,
+    rgba(0, 0, 0, 0.3) 84%,
+    rgba(0, 0, 0, 0) 100%
   );
   opacity: 0.88;
 }
@@ -544,7 +546,7 @@ body:has(.myth-backdrop) header a:hover {
    painted round a panel on the vase itself. Measured 4.9 against the navy, so
    it is still an indicator and not just a decoration. */
 .myth-stage [data-amphora="stage"]:focus-visible {
-  outline: 1.5px solid rgba(240, 226, 199, 0.8);
+  outline: 1.5px solid rgba(246, 236, 224, 0.8);
   outline-offset: 0.625rem;
   border-radius: 2px;
 }
@@ -715,40 +717,17 @@ body:has(.myth-backdrop) header a:hover {
   }
 }
 
-/* Before the first turn: a fleuron, the ornament a printer sets in a blank.
-   It reads as deliberately empty rather than as unfinished, and it asks the
-   reader for nothing. Not hung off the vessel — the model is framed with room
-   under its foot, so anything vertical would read as a stray tick. */
+/* Before the first turn the panel shows nothing at all.
+
+   It used to carry a fleuron — a printer's ornament in a blank, so the space
+   read as deliberately empty rather than unfinished. The column now runs down
+   through exactly that space, and a rule drawn across a stone shaft reads as a
+   crack in it. The column is the ornament now; the reserved height below is
+   what keeps the page from moving when a story arrives. */
 .myth-stage [data-amphora="rest"] {
-  position: relative;
-  display: block;
-  width: 7.5rem;
-  height: 0.5rem;
-  background: linear-gradient(
-      to right,
-      transparent,
-      rgba(195, 174, 142, 0.42) 24%,
-      rgba(195, 174, 142, 0.42) 76%,
-      transparent
-    )
-    center / 100% 1px no-repeat;
+  display: none;
 }
 
-.myth-stage [data-amphora="rest"]::after {
-  content: "";
-  position: absolute;
-  inset: 50% auto auto 50%;
-  width: 0.3125rem;
-  height: 0.3125rem;
-  transform: translate(-50%, -50%) rotate(45deg);
-  background: var(--myth-sand);
-  opacity: 0.85;
-}
-
-/* The resting panel, when the vessel has already offered something readable.
-   Quiet on purpose: it is a way back, not a second invitation to spin. It
-   stands exactly where the fleuron would, so the space it needs is space the
-   panel had already reserved and nothing on the page moves. */
 .myth-stage [data-amphora="again"] {
   max-width: 34ch;
   font-size: 0.9375rem;
@@ -787,7 +766,7 @@ body:has(.myth-backdrop) header a:hover {
    and gold for whichever myth the amphora has settled on. */
 .myth-stage [data-amphora="index"] a {
   color: rgba(185, 173, 151, 0.95);
-  text-decoration-color: rgba(240, 226, 199, 0.35);
+  text-decoration-color: rgba(246, 236, 224, 0.35);
   text-underline-offset: 0.32em;
 }
 

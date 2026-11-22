@@ -22,3 +22,48 @@ A slug with no PNG here falls back to a scene hand-authored in
 After changing anything here, run:
 
     npm run content:sync && npm run amphora
+
+## Preparing one
+
+Three scripts, one per polarity a reference arrives in:
+
+| Reference | Script |
+| --- | --- |
+| Ink outlines on white paper | `prepare-lineart.js` |
+| An illustrated scene, mixed polarity, with scenery | `prepare-figure.js` |
+| An actual black-figure vase: solid dark figures on flat clay | `prepare-blackfigure.js` |
+
+All three write `content/figures/<slug>.png` in the one polarity the importer
+reads — **light silhouette, dark incised lines, dark ground**. The slug is the
+story's slug; a figure with no story of that name is never painted.
+
+```bash
+node scripts/amphora/prepare-blackfigure.js <ref.png> <slug> '{"erase":[[x0,y0,x1,y1]]}'
+```
+
+`erase` paints a rectangle back to ground before anything else. Vase painters
+signed their work and labelled their gods, and a name beside a figure is dark
+in exactly the way the figure is.
+
+## sources/
+
+What the prepared files were made from, so they can be remade.
+
+`athena-and-poseidon-reference.png` is a photograph of a black-figure amphora — Athena and
+Poseidon in conversation — and needs only thresholding and four erase
+rectangles for the lettering.
+
+`zeus-and-hermes.svg` has no photograph behind it: the scene is drawn, in the
+conventions rather than in an imitation of them — profile heads with a reserved
+eye, a beard as a wedge, drapery as vertical incision, archaic perspective for
+the open door. Render it to a bitmap and prepare that:
+
+```bash
+# any renderer that honours the viewBox will do
+node scripts/amphora/prepare-blackfigure.js zeus-and-hermes@2x.png zeus-and-hermes
+```
+
+Two things the drawing is deliberately built around. The identity of a black
+head is its front edge alone, so the nose and the beard are large and plain —
+drawn delicately they disappear at the size a panel is painted. And the figures
+are stocky: given a modern build they read as scarecrows on the vessel.

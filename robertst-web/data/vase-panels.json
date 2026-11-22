@@ -1,14 +1,14 @@
 {
   "_generated": "npm run content:sync — generated from the active collection, do not edit",
-  "collection": "2026-w34",
+  "collection": "the-king-minos",
   "panels": [
     {
-      "key": "prometheus",
-      "name": "Prometheus",
+      "key": "the-king-minos",
+      "name": "Zeus's Law",
       "angle": 36,
       "slot": 0,
       "access": "preview",
-      "figure": "content/figures/prometheus.png"
+      "figure": "content/figures/the-king-minos.png"
     },
     {
       "key": "dionysos",
@@ -23,7 +23,7 @@
       "name": "Icarus",
       "angle": 180,
       "slot": 2,
-      "access": "preview",
+      "access": "locked",
       "figure": "content/figures/icarus.png",
       "airborne": true
     },
@@ -35,8 +35,8 @@
       "access": "locked"
     },
     {
-      "key": "pandora",
-      "name": "Pandora",
+      "key": "athena",
+      "name": "Athena",
       "angle": 324,
       "slot": 4,
       "access": "locked"

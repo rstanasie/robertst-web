@@ -1,10 +1,16 @@
 /**
  * The pedestal the vessel stands on: an Ionic capital over a fluted shaft,
- * fading out before it reaches the reader.
+ * seen from slightly below and fading out before it reaches the reader.
  *
  * Drawn rather than photographed so it can be lit to match the scene and
  * masked without a cutout, and drawn from the order's own geometry rather than
- * from an impression of it. Three things do most of the work:
+ * from an impression of it. Four things do most of the work:
+ *
+ *   Seen from below. Every horizontal circle on a column — the bead band, the
+ *   top of the shaft, the underside of the abacus — projects to an ellipse
+ *   whose near edge bows *downward*, and the undersides that a level view
+ *   hides come into sight. BOW is that whole effect in one number. Without it
+ *   a drawn column reads as an elevation drawing pasted onto a photograph.
  *
  *   The flutes are projected, not evenly spaced. A fluted shaft is a cylinder,
  *   so flutes at equal angles round it land at sin(theta) across the drawing —
@@ -17,8 +23,10 @@
  *   dark, and the far wall catches it. That inversion is what the eye reads as
  *   "carved" rather than "painted on".
  *
- *   The volutes are tapering bands, not strokes. A real scroll narrows as it
- *   winds in; a constant-width stroke reads as a coil of rope.
+ *   The shaft darkens downward. Marble this far below the capital is out of
+ *   the light, and a shaft of even tone reads as a cardboard tube however well
+ *   its flutes are modelled. The mask that fades it out is a separate thing
+ *   and does not substitute for this.
  *
  * Everything here is pure geometry evaluated once at module load. Placement,
  * the fade and responsive sizing are CSS: see `.myth-column` in
@@ -27,45 +35,74 @@
 
 /* ── Stone ──────────────────────────────────────────────────────────────── */
 
-const STONE = [106, 103, 97];
+const STONE = [122, 118, 112];
 
 /**
  * A lit tone of the stone. Above 1 the highlight drifts toward white rather
  * than simply scaling, because scaling a grey only ever gets you a paler grey
- * and sunlit limestone goes faintly bleached.
+ * and sunlit marble goes bleached.
  */
 function tone(level: number): string {
   const over = Math.max(0, level - 1);
   const channels = STONE.map((value) => {
-    const lit = value * Math.min(level, 1.12);
-    return Math.round(Math.min(255, lit + (255 - lit) * over * 0.42));
+    const lit = value * Math.min(level, 1.1);
+    return Math.round(Math.min(255, lit + (255 - lit) * over * 0.46));
   });
   return `rgb(${channels[0]},${channels[1]},${channels[2]})`;
 }
 
 /**
  * Lambert against the scene's key light, which comes from the upper left and
- * slightly in front — the same direction the vessel above is lit from, and the
- * same side the temple burns on.
+ * slightly in front — the same direction the vessel above is lit from.
  */
 const LIGHT = { x: -0.4, y: 0.8 };
 const PEAK = Math.hypot(LIGHT.x, LIGHT.y);
 
 function lambert(theta: number): number {
   const facing = LIGHT.x * Math.sin(theta) + LIGHT.y * Math.cos(theta);
-  return 0.42 + 0.86 * Math.max(0, facing / PEAK);
+  return 0.44 + 0.9 * Math.max(0, facing / PEAK);
+}
+
+/* ── The low angle ──────────────────────────────────────────────────────── */
+
+/**
+ * How far a horizontal circle's near edge drops below its far edge, in viewBox
+ * units.
+ *
+ * The column paints about 190px wide, so the viewBox is very nearly 1:1 with
+ * screen pixels: a bow of 7 was 7px of sag on an edge 180px long, which is a
+ * slope of two degrees and reads as nothing at all. A low angle has to be
+ * drawn at a size the eye can find.
+ */
+const BOW = 13;
+
+const CENTRE = 100;
+
+/** The arc a horizontal edge of half-width `half` makes at height `y`. */
+function bowed(half: number, y: number, depth = BOW): string {
+  const left = CENTRE - half;
+  const right = CENTRE + half;
+  return `M${left} ${y} Q${CENTRE} ${y + depth * 2} ${right} ${y}`;
+}
+
+/** The same arc as a closed band between two heights. */
+function bowedBand(half: number, top: number, bottom: number, depth = BOW): string {
+  const left = CENTRE - half;
+  const right = CENTRE + half;
+  return (
+    `M${left} ${top} Q${CENTRE} ${top + depth * 2} ${right} ${top} ` +
+    `L${right} ${bottom} Q${CENTRE} ${bottom + depth * 2} ${left} ${bottom} Z`
+  );
 }
 
 /* ── Shaft ──────────────────────────────────────────────────────────────── */
 
-const SHAFT_TOP = 92;
+const SHAFT_TOP = 122;
 const SHAFT_BOTTOM = 300;
-const HALF_TOP = 54;
-const HALF_BOTTOM = 63;
+const HALF_TOP = 60;
+const HALF_BOTTOM = 67;
 /** Entasis: the shaft's sides bow out a little rather than running straight. */
-const ENTASIS = 1.8;
-
-const CENTRE = 100;
+const ENTASIS = 2;
 
 function halfWidth(y: number): number {
   const t = (y - SHAFT_TOP) / (SHAFT_BOTTOM - SHAFT_TOP);
@@ -77,14 +114,24 @@ function at(share: number, y: number): number {
   return CENTRE + (share * 2 - 1) * halfWidth(y);
 }
 
-/** Vertical steps used to trace a side that is curved rather than straight. */
-const RUNGS = [0, 0.18, 0.36, 0.54, 0.72, 0.86, 1].map(
+/**
+ * Where a point at `share` across the drum sits vertically on the bowed top
+ * edge: the near face of the drum hangs lowest in the middle.
+ */
+const brow = (share: number) => SHAFT_TOP + BOW * 2 * (1 - Math.abs(share * 2 - 1));
+
+const RUNGS = [0, 0.16, 0.34, 0.52, 0.7, 0.86, 1].map(
   (t) => SHAFT_TOP + (SHAFT_BOTTOM - SHAFT_TOP) * t,
 );
 
 function side(share: number, downward: boolean): string {
   const rungs = downward ? RUNGS : [...RUNGS].reverse();
-  return rungs.map((y) => `${at(share, y).toFixed(1)} ${y.toFixed(1)}`).join(" L");
+  return rungs
+    .map((y, index) => {
+      const at0 = at(share, Math.max(y, brow(share)));
+      return `${at0.toFixed(1)} ${Math.max(y, index === 0 && downward ? brow(share) : y).toFixed(1)}`;
+    })
+    .join(" L");
 }
 
 /**
@@ -94,7 +141,7 @@ function side(share: number, downward: boolean): string {
  * at a sharp arris.
  */
 const FLUTE_COUNT = 24;
-const FILLET_SHARE = 0.3;
+const FILLET_SHARE = 0.26;
 
 const flutes = Array.from({ length: FLUTE_COUNT / 2 }, (_, index) => {
   const step = Math.PI / (FLUTE_COUNT / 2);
@@ -140,7 +187,7 @@ function voluteBand(
     const radius = outer * Math.exp(-decay * t);
     // The fillet narrows with the coil, but not as fast, or the last turn
     // disappears before it reaches the eye.
-    const width = 2.2 + 5.2 * Math.pow(radius / outer, 0.72);
+    const width = 3 + 6.5 * Math.pow(radius / outer, 0.7);
 
     const nx = cx + Math.cos(angle) * (radius + width / 2);
     const ny = cy + Math.sin(angle) * (radius + width / 2);
@@ -154,31 +201,35 @@ function voluteBand(
   return `M${near.join(" L")} L${far.join(" L")} Z`;
 }
 
-const VOLUTE_LEFT = voluteBand(48, 46, 23, 4.2, 2.3, -96, 1);
-const VOLUTE_RIGHT = voluteBand(152, 46, 23, 4.2, 2.3, -84, -1);
+const VOLUTE_LEFT = voluteBand(48, 62, 27, 4.4, 2.4, -96, 1);
+const VOLUTE_RIGHT = voluteBand(152, 62, 27, 4.4, 2.4, -84, -1);
 
-/* ── Egg and dart ───────────────────────────────────────────────────────── */
+/* ── Bead and reel ──────────────────────────────────────────────────────── */
 
-const ECHINUS_TOP = 64;
-const ECHINUS_BOTTOM = 80;
-const EGGS = 7;
+const BEAD_TOP = 94;
+const BEAD_BOTTOM = 114;
+const BEADS = 9;
+const BEAD_Y = (BEAD_TOP + BEAD_BOTTOM) / 2;
 
-const eggs = Array.from({ length: EGGS }, (_, index) => {
-  const share = (index + 0.5) / EGGS;
-  // The band wraps the same cylinder the shaft is, so it takes the same
-  // projection and the same light.
+const beads = Array.from({ length: BEADS }, (_, index) => {
+  const share = (index + 0.5) / BEADS;
+  // The band wraps the same cylinder the shaft does, so it takes the same
+  // projection and the same light — and it sags with the same low angle.
   const theta = Math.asin(Math.min(1, Math.max(-1, share * 2 - 1)));
-  // Half the cylinder's swing. The band is 16 units tall on screen, and at
-  // that size the far end going to full shadow reads as a gap in the carving.
-  return { x: 32 + share * 136, level: 0.58 + 0.42 * lambert(theta), index };
+  return {
+    x: 32 + share * 136,
+    y: BEAD_Y + BOW * 1.1 * (1 - Math.abs(share * 2 - 1)),
+    level: 0.6 + 0.4 * lambert(theta),
+    index,
+  };
 });
 
 /** Water stains, placed off the regular flute rhythm so they read as damage. */
 const STAINS = [
-  { share: 0.16, width: 0.035, opacity: 0.2 },
-  { share: 0.37, width: 0.022, opacity: 0.14 },
-  { share: 0.63, width: 0.03, opacity: 0.18 },
-  { share: 0.82, width: 0.018, opacity: 0.12 },
+  { share: 0.16, width: 0.035, opacity: 0.16 },
+  { share: 0.37, width: 0.022, opacity: 0.12 },
+  { share: 0.63, width: 0.03, opacity: 0.15 },
+  { share: 0.82, width: 0.018, opacity: 0.1 },
 ];
 
 export default function AmphoraColumn() {
@@ -188,12 +239,19 @@ export default function AmphoraColumn() {
         <defs>
           {/* The shaft's own cylinder shading, under the flutes. */}
           <linearGradient id="myth-column-drum" x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0" stopColor={tone(0.36)} />
-            <stop offset="0.12" stopColor={tone(0.62)} />
-            <stop offset="0.3" stopColor={tone(1.02)} />
-            <stop offset="0.52" stopColor={tone(0.94)} />
-            <stop offset="0.78" stopColor={tone(0.64)} />
-            <stop offset="1" stopColor={tone(0.34)} />
+            <stop offset="0" stopColor={tone(0.34)} />
+            <stop offset="0.1" stopColor={tone(0.66)} />
+            <stop offset="0.3" stopColor={tone(1.26)} />
+            <stop offset="0.52" stopColor={tone(1.08)} />
+            <stop offset="0.8" stopColor={tone(0.62)} />
+            <stop offset="1" stopColor={tone(0.3)} />
+          </linearGradient>
+
+          {/* Out of the capital's light the further down it goes. */}
+          <linearGradient id="myth-column-depth" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stopColor="#000000" stopOpacity="0" />
+            <stop offset="0.45" stopColor="#060d18" stopOpacity="0.22" />
+            <stop offset="1" stopColor="#060d18" stopOpacity="0.72" />
           </linearGradient>
 
           {/* One per flute: dark on the wall turned away from the light,
@@ -210,49 +268,50 @@ export default function AmphoraColumn() {
               x2="1"
               y2="0"
             >
-              <stop offset="0" stopColor={tone(flute.level * 0.34)} />
-              <stop offset="0.22" stopColor={tone(flute.level * 0.44)} />
-              <stop offset="0.68" stopColor={tone(flute.level * 0.74)} />
-              <stop offset="1" stopColor={tone(flute.level * 0.88)} />
+              <stop offset="0" stopColor={tone(flute.level * 0.26)} />
+              <stop offset="0.24" stopColor={tone(flute.level * 0.4)} />
+              <stop offset="0.7" stopColor={tone(flute.level * 0.74)} />
+              <stop offset="1" stopColor={tone(flute.level * 0.92)} />
             </linearGradient>
           ))}
 
-          {/* The eggs are carved out of the same cylinder, so each is lit from
-              the upper left and shaded away from it. */}
-          {eggs.map((egg) => (
+          {/* The beads are turned out of the same cylinder, so each is lit
+              from the upper left and shaded away from it. */}
+          {beads.map((bead) => (
             <radialGradient
-              key={egg.index}
-              id={`myth-egg-${egg.index}`}
-              cx="0.36"
-              cy="0.3"
-              r="0.82"
+              key={bead.index}
+              id={`myth-bead-${bead.index}`}
+              cx="0.34"
+              cy="0.28"
+              r="0.84"
             >
-              <stop offset="0" stopColor={tone(egg.level * 1.22)} />
-              <stop offset="0.55" stopColor={tone(egg.level * 0.96)} />
-              <stop offset="1" stopColor={tone(egg.level * 0.6)} />
+              <stop offset="0" stopColor={tone(bead.level * 1.26)} />
+              <stop offset="0.5" stopColor={tone(bead.level * 0.92)} />
+              <stop offset="1" stopColor={tone(bead.level * 0.48)} />
             </radialGradient>
           ))}
 
           <linearGradient id="myth-column-slab" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stopColor={tone(1.18)} />
-            <stop offset="0.3" stopColor={tone(1.0)} />
-            <stop offset="1" stopColor={tone(0.58)} />
+            <stop offset="0" stopColor={tone(1.55)} />
+            <stop offset="0.5" stopColor={tone(1.18)} />
+            <stop offset="1" stopColor={tone(0.8)} />
           </linearGradient>
 
-          <linearGradient id="myth-column-bolster" x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0" stopColor={tone(0.42)} />
-            <stop offset="0.28" stopColor={tone(0.98)} />
-            <stop offset="0.6" stopColor={tone(0.82)} />
-            <stop offset="1" stopColor={tone(0.4)} />
+          {/* The soffit takes no direct light at all, only what comes back up
+              off the cloud — so it is dark, but it is still marble and it is
+              brightest along its near edge, where the bounce reaches it. */}
+          <linearGradient id="myth-column-soffit" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stopColor={tone(0.3)} />
+            <stop offset="0.62" stopColor={tone(0.46)} />
+            <stop offset="1" stopColor={tone(0.72)} />
           </linearGradient>
 
-          {/* A torus reads as a band lit along a line, not as a flat strip. */}
-          <linearGradient id="myth-column-bead" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stopColor={tone(0.56)} />
-            <stop offset="0.36" stopColor={tone(1.14)} />
-            <stop offset="1" stopColor={tone(0.5)} />
+          <linearGradient id="myth-column-cushion" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0" stopColor={tone(0.4)} />
+            <stop offset="0.3" stopColor={tone(1.16)} />
+            <stop offset="0.62" stopColor={tone(0.92)} />
+            <stop offset="1" stopColor={tone(0.38)} />
           </linearGradient>
-
         </defs>
 
         {/* ── Shaft ───────────────────────────────────────────────────── */}
@@ -270,86 +329,92 @@ export default function AmphoraColumn() {
             />
           ))}
 
-          {/* Each channel ends in a rounded head below the astragal. It is a
+          {/* Each channel ends in a rounded head below the bead band. It is a
               recess, so it reads as the shadow under the moulding — filled
               light it caps every flute like the end of a pipe. */}
-          {flutes.map((flute) => (
-            <ellipse
-              key={flute.index}
-              cx={(at(flute.left, SHAFT_TOP) + at(flute.right, SHAFT_TOP)) / 2}
-              cy={SHAFT_TOP + 2}
-              rx={(at(flute.right, SHAFT_TOP) - at(flute.left, SHAFT_TOP)) / 2}
-              ry="3"
-              fill={tone(flute.level * 0.3)}
-            />
-          ))}
+          {flutes.map((flute) => {
+            const mid = (flute.left + flute.right) / 2;
+            return (
+              <ellipse
+                key={flute.index}
+                cx={at(mid, SHAFT_TOP)}
+                cy={brow(mid) + 2}
+                rx={(at(flute.right, SHAFT_TOP) - at(flute.left, SHAFT_TOP)) / 2}
+                ry="2.6"
+                fill={tone(flute.level * 0.34)}
+              />
+            );
+          })}
 
-          {/* Weathering: a few long stains where water has run down the
-              stone, following the flutes rather than crossing them. A noise
-              filter was the obvious answer and the wrong one — feTurbulence
-              replaces the graphic alpha and all, which milks the whole shaft
-              and swallows the flute shading that does the real work. */}
+          {/* Weathering: a few long stains where water has run down the stone,
+              following the flutes rather than crossing them. */}
           {STAINS.map((stain) => (
             <path
               key={stain.share}
               d={`M${side(stain.share, true)} L${side(stain.share + stain.width, false)} Z`}
-              fill={tone(0.5)}
+              fill={tone(0.42)}
               opacity={stain.opacity}
             />
           ))}
+
+          <path
+            d={`M${side(0, true)} L${side(1, false)} Z`}
+            fill="url(#myth-column-depth)"
+          />
         </g>
 
-        {/* ── Astragal: the bead between shaft and capital ─────────────── */}
-        <rect x={CENTRE - HALF_TOP - 2} y="84" width={(HALF_TOP + 2) * 2} height="8" rx="3.2" fill="url(#myth-column-bead)" />
-        <rect x={CENTRE - HALF_TOP - 4} y="80" width={(HALF_TOP + 4) * 2} height="4.5" fill={tone(0.74)} />
-
-        {/* ── Echinus: egg and dart ────────────────────────────────────── */}
-        <rect x="30" y={ECHINUS_TOP} width="140" height={ECHINUS_BOTTOM - ECHINUS_TOP} fill={tone(0.66)} />
-        {eggs.map((egg) => (
-          <g key={egg.index}>
-            {/* the shell around the egg */}
-            {/* The shell, then the egg sitting in it. */}
-            <ellipse cx={egg.x} cy={(ECHINUS_TOP + ECHINUS_BOTTOM) / 2} rx="9" ry="7.6" fill={tone(egg.level * 0.44)} />
-            <ellipse
-              cx={egg.x - 0.5}
-              cy={(ECHINUS_TOP + ECHINUS_BOTTOM) / 2 + 0.5}
-              rx="6.2"
-              ry="5.6"
-              fill={`url(#myth-egg-${egg.index})`}
-            />
-            {/* The dart: a tongue between two eggs, read at this size as the
-                light wedge in the gap rather than as carved detail. */}
-            <path
-              d={`M${egg.x + 9.7} ${ECHINUS_TOP + 1.4} L${egg.x + 12.6} ${ECHINUS_TOP + 1.4} L${egg.x + 11.1} ${ECHINUS_BOTTOM - 1.6} Z`}
-              fill={tone(egg.level * 0.92)}
-            />
-          </g>
+        {/* ── Bead and reel, sagging with the low angle ────────────────── */}
+        <path d={bowedBand(70, BEAD_TOP, BEAD_BOTTOM, BOW * 1.1)} fill={tone(0.44)} />
+        {beads.map((bead) => (
+          <circle
+            key={bead.index}
+            cx={bead.x}
+            cy={bead.y}
+            r="7.6"
+            fill={`url(#myth-bead-${bead.index})`}
+          />
         ))}
+        {/* the reel's own shadow under the beads */}
+        <path
+          d={bowed(70, BEAD_BOTTOM - 1, BOW * 1.1)}
+          fill="none"
+          stroke={tone(0.3)}
+          strokeWidth="3"
+        />
 
-        {/* ── Volutes, over the bolster that joins them ────────────────── */}
-        <path d="M34 62 Q100 70 166 62 L166 32 Q100 26 34 32 Z" fill="url(#myth-column-bolster)" />
-        {[0, 1, 2, 3].map((band) => (
+        {/* ── Volutes, over the cushion that joins them ────────────────── */}
+        <path d="M30 92 Q100 108 170 92 L170 36 Q100 30 30 36 Z" fill="url(#myth-column-cushion)" />
+        {[0, 1, 2, 3, 4].map((band) => (
           <path
             key={band}
-            d={`M${86 + band * 9.5} 30 Q${88 + band * 9.5} 46 ${86 + band * 9.5} 64`}
-            stroke={tone(0.54)}
-            strokeWidth="1.1"
+            d={`M${80 + band * 10} 34 Q${82 + band * 10} 64 ${80 + band * 10} 96`}
+            stroke={tone(0.46)}
+            strokeWidth="1.6"
             fill="none"
-            opacity="0.7"
+            opacity="0.75"
           />
         ))}
 
         <g>
-          <path d={VOLUTE_LEFT} fill={tone(0.92)} />
-          <path d={VOLUTE_RIGHT} fill={tone(0.78)} />
-          <circle cx="48" cy="46" r="3.6" fill={tone(1.12)} stroke={tone(0.44)} strokeWidth="1.1" />
-          <circle cx="152" cy="46" r="3.6" fill={tone(0.96)} stroke={tone(0.42)} strokeWidth="1.1" />
+          <path d={VOLUTE_LEFT} fill={tone(1.12)} />
+          <path d={VOLUTE_RIGHT} fill={tone(0.86)} />
+          <circle cx="48" cy="62" r="4.4" fill={tone(1.5)} stroke={tone(0.4)} strokeWidth="1.4" />
+          <circle cx="152" cy="62" r="4.4" fill={tone(1.2)} stroke={tone(0.38)} strokeWidth="1.4" />
         </g>
 
-        {/* ── Abacus ───────────────────────────────────────────────────── */}
-        <path d="M22 22 Q22 17 27 17 L173 17 Q178 17 178 22 L178 26 L22 26 Z" fill={tone(0.72)} />
-        <rect x="18" y="6" width="164" height="12" rx="1.2" fill="url(#myth-column-slab)" />
-        <rect x="18" y="6" width="164" height="2.2" fill={tone(1.22)} />
+        {/* ── Abacus ───────────────────────────────────────────────────
+               Where the low angle is most of all. From below, a slab shows
+               its *underside* and hides its top: the bright top face a level
+               view would give you is simply not drawn, and in its place is a
+               deep bowed soffit lit only by what bounces back up off the
+               cloud. The vase above it sits on a surface the reader cannot
+               see, which is exactly the cue that says they are beneath it. */}
+        <path d={bowedBand(92, 15, 31, BOW)} fill="url(#myth-column-soffit)" />
+        <path d={bowed(92, 29.5, BOW)} fill="none" stroke={tone(0.95)} strokeWidth="2.2" />
+        <rect x="8" y="2" width="184" height="14" rx="1" fill="url(#myth-column-slab)" />
+        {/* The front face's lower lip catches the light; its top edge does not,
+            because from here the top edge is going away from the eye. */}
+        <rect x="8" y="13" width="184" height="3" fill={tone(1.45)} />
       </svg>
     </div>
   );

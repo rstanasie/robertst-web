@@ -1,0 +1,175 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 1000" width="860" height="1000">
+  <rect width="860" height="1000" fill="#ffffff"/>
+
+  <!-- ── the house: frame black, the opening reserved, one leaf ajar ───── -->
+  <g fill="#000000">
+    <path d="M556 912 L556 194 L846 194 L846 912 L808 912 L808 236 L594 236 L594 912 Z"/>
+    <!-- The leaf, swung inward on its left pivot. Archaic perspective is a
+         parallelogram and nothing else: the near edge drops straight, the far
+         edge rides up, and the reserved clay behind it is the house. -->
+    <path d="M594 242 L676 296 L676 906 L594 906 Z"/>
+    <!-- the lintel's cornice, so the frame reads as built and not drawn -->
+    <path d="M540 194 L862 194 L862 214 L540 214 Z"/>
+    <!-- threshold -->
+    <path d="M548 906 L854 906 L854 926 L548 926 Z"/>
+  </g>
+
+  <g fill="#000000">
+    <!-- ══ Zeus ══════════════════════════════════════════════════════════ -->
+    <!-- sceptre, taller than he is -->
+    <path d="M106 150 L120 150 L120 918 L106 918 Z"/>
+    <path d="M98 128 C98 112 116 106 128 116 C138 124 136 142 124 148 L102 148 Z"/>
+
+    <!-- Head, hair and beard as one mass, because that is how it is painted:
+         what tells them apart is the incision, not a gap in the glaze.
+
+         The whole identity of a black head is its front edge, so the features
+         are cut as straight segments and made big — the nose projects a fifth
+         of the head's height. Drawn delicately they vanish: at the size this
+         is painted, a subtle profile is no profile. -->
+    <path d="M196 198 C216 204 226 216 226 232
+             L244 256 L224 262
+             C230 272 230 282 222 292
+             L248 314 C246 350 236 376 216 384
+             C196 378 184 356 182 326
+             L162 330 C146 310 142 272 150 240
+             C158 212 176 198 196 198 Z"/>
+    <!-- himation: one mass, the hem swinging forward, an overfold at the hip -->
+    <path d="M186 342 C158 352 140 378 134 418 C126 472 118 560 112 648
+             C108 724 104 802 102 856 C140 872 200 876 258 868
+             C262 790 264 700 262 612 C260 524 254 444 246 400
+             C240 364 222 344 196 340 Z"/>
+    <!-- the overfold, a second edge across the body -->
+    <path d="M140 404 C176 428 220 432 250 416 L252 440 C218 458 176 454 138 430 Z" fill="#ffffff"/>
+
+    <!-- arm along the sceptre -->
+    <!-- the arm that holds it, ending in a fist closed round the shaft -->
+    <path d="M150 356 C130 366 118 388 114 414 L108 456
+             C96 458 92 472 100 482 C108 492 126 490 130 478 L136 420
+             C140 398 148 382 160 374 Z"/>
+    <!-- the free hand gathers the himation at the hip, which is what gives
+         the drapery its diagonal and the figure its weight -->
+    <path d="M244 372 C264 382 278 402 282 426 L286 462
+             C296 466 300 478 294 486 C288 494 276 492 272 482 L264 456
+             C258 434 248 416 234 406 Z"/>
+
+    <!-- feet in profile: heel, arch, toe -->
+    <path d="M118 856 L118 892 C118 900 124 906 134 906 L178 906 C186 906 188 896 180 892
+             L148 878 L148 856 Z"/>
+    <path d="M212 858 L212 892 C212 900 218 906 228 906 L272 906 C280 906 282 896 274 892
+             L242 878 L242 858 Z"/>
+
+    <!-- ══ Hermes ════════════════════════════════════════════════════════ -->
+    <!-- kerykeion: the staff with its figure-of-eight head -->
+    <path d="M344 316 L358 316 L358 916 L344 916 Z"/>
+    <!-- Two snakes meeting head to head, which is what the herald's staff is.
+         Drawn as opposed curls: at this size the bodies are the message and
+         the heads are two dots. -->
+    <path d="M350 284 C330 286 316 276 316 262 C316 250 328 244 336 250
+             C344 256 342 268 334 270 C328 272 324 268 326 262
+             C322 266 324 276 334 278 C342 280 348 280 350 278 Z"/>
+    <path d="M350 284 C370 286 384 276 384 262 C384 250 372 244 364 250
+             C356 256 358 268 366 270 C372 272 376 268 374 262
+             C378 266 376 276 366 278 C358 280 352 280 350 278 Z"/>
+    <path d="M344 276 L358 276 L358 320 L344 320 Z"/>
+
+    <!-- The petasos: a traveller's hat, so a long brim that dips at both ends
+         and a crown low enough to read as felt rather than as a bowler. -->
+    <path d="M360 284 C370 272 394 266 424 266 C454 266 478 272 488 284
+             C478 294 454 300 424 300 C394 300 370 294 360 284 Z"/>
+    <path d="M394 270 C394 242 406 230 424 230 C442 230 454 242 454 270
+             C442 274 406 274 394 270 Z"/>
+
+    <!-- Beardless and young: the profile runs clean from brow to chin, which
+         at this size is the whole of what separates him from Zeus. -->
+    <path d="M400 290 L424 312 L440 338 L422 344
+             C428 360 428 370 418 378
+             C404 386 390 382 384 366
+             C380 342 378 312 382 294 Z"/>
+
+    <!-- chiton: short and belted, the hem cut in the zigzag a vase painter
+         uses wherever cloth ends. Broad, because an archaic figure is stocky:
+         drawn to a modern build it reads as a scarecrow at this size. -->
+    <path d="M396 358 C372 372 362 400 360 436 L356 586
+             L376 580 L388 612 L404 576 L420 606 L436 572 L452 602 L468 568 L482 588 L486 434
+             C484 398 474 370 450 358 Z"/>
+    <!-- chlamys, pinned at the shoulder and falling behind him -->
+    <path d="M392 360 C364 376 350 410 348 456 L344 548 L372 542 L376 444
+             C378 412 390 386 408 372 Z"/>
+    <!-- the arm that holds the staff, down at his side -->
+    <path d="M374 384 C358 396 350 418 348 442 L344 486
+             C332 490 328 504 338 514 C348 522 364 518 366 506 L372 450
+             C374 428 382 410 396 400 Z"/>
+
+    <!-- the arm that is knocking -->
+    <path d="M452 374 C480 366 510 364 536 370 L562 378
+             C572 374 582 380 582 390 C582 400 572 406 562 402 L534 396
+             C510 390 482 392 456 402 Z"/>
+
+    <!-- legs: a thigh, a calf that swells, an ankle that does not -->
+    <path d="M382 580 C372 622 368 662 370 700
+             C374 740 378 790 378 856 L420 856
+             C420 790 422 740 426 700 C430 662 432 620 428 582 Z"/>
+    <path d="M444 576 C452 620 458 662 462 700
+             C468 744 474 796 476 854 L516 854
+             C512 796 504 744 496 700 C490 662 484 620 478 578 Z"/>
+
+    <!-- feet, and the wings at the ankle that say who he is -->
+    <path d="M378 856 L378 892 C378 900 384 906 394 906 L442 906 C450 906 452 896 444 892
+             L410 878 L410 856 Z"/>
+    <path d="M476 854 L476 892 C476 900 482 906 492 906 L540 906 C548 906 550 896 542 892
+             L508 878 L508 854 Z"/>
+    <path d="M376 854 C356 840 336 836 322 844 C338 852 354 864 364 878 Z"/>
+    <path d="M474 852 C454 838 434 834 420 842 C436 850 452 862 462 876 Z"/>
+  </g>
+
+  <!-- ── incision: cut back to the clay ────────────────────────────────── -->
+  <g fill="none" stroke="#ffffff" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Zeus -->
+    <!-- the eye, reserved; the one piece of a black head that is not black -->
+    <path d="M206 232 L226 232" stroke-width="11"/>
+    <!-- the line that separates hair from brow, and beard from cheek -->
+    <path d="M186 206 C168 218 160 242 160 272"/>
+    <path d="M176 292 C198 298 216 294 230 286"/>
+    <!-- the beard's own strokes -->
+    <path d="M186 312 C194 336 196 366 190 392" stroke-width="4.5"/>
+    <path d="M200 310 C209 334 212 365 207 393" stroke-width="4.5"/>
+    <path d="M214 308 C224 332 228 364 224 394" stroke-width="4.5"/>
+    <path d="M228 310 C238 333 242 363 237 391" stroke-width="4.5"/>
+    <path d="M241 314 C250 335 253 360 248 385" stroke-width="4.5"/>
+    <path d="M130 452 C128 560 120 740 116 854"/>
+    <path d="M166 448 C164 560 160 740 158 854"/>
+    <path d="M206 446 C206 560 206 740 206 854"/>
+    <path d="M242 448 C246 560 250 740 252 852"/>
+    <path d="M110 806 C150 820 212 822 258 810"/>
+
+    <!-- Hermes -->
+    <path d="M406 328 L422 328" stroke-width="11"/>
+    <path d="M392 312 C386 338 388 364 398 382"/>
+    <path d="M364 284 C390 290 458 290 484 284"/>
+    <path d="M392 392 L380 572"/>
+    <path d="M422 386 L422 572"/>
+    <path d="M452 392 L464 572"/>
+    <path d="M364 420 C398 436 448 436 482 420"/>
+    <path d="M466 374 C490 368 514 368 536 374"/>
+    <path d="M396 630 C390 710 386 790 386 850"/>
+    <path d="M462 626 C470 710 478 790 480 848"/>
+    <path d="M356 470 L362 536"/>
+
+    <!-- Zeus: hair strokes at the nape, and the himation gathered at the hip -->
+    <path d="M176 232 C160 244 152 268 152 296"/>
+    <path d="M168 252 C156 264 150 282 150 304"/>
+    <path d="M238 420 C222 448 206 490 196 540"/>
+    <path d="M246 430 C236 462 228 506 224 552"/>
+    <!-- Hermes: the belt, and the fold under his raised arm -->
+    <path d="M452 400 C466 414 476 434 480 456"/>
+
+    <!-- the door: a few planks and the pivot line, no more -->
+    <path d="M622 260 L622 898"/>
+    <path d="M650 278 L650 898"/>
+    <path d="M598 468 L674 516" stroke-width="10"/>
+    <path d="M598 720 L674 752" stroke-width="10"/>
+    <path d="M828 236 L828 906"/>
+    <path d="M574 214 L574 906"/>
+  </g>
+</svg>

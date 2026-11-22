@@ -229,8 +229,8 @@ const PANELS = JSON.parse(fs.readFileSync(PANELS_PATH, "utf8")).map((panel) => (
   access: panel.access,
   airborne: Boolean(panel.airborne),
   u: (((180 - panel.angle) / 360) % 1 + 1) % 1,
-  stencil: panel.figure ? loadFigure(path.join(ROOT, panel.figure)) : null,
-  ops: FIGURES[panel.key] ?? (panel.access === "locked" ? FIGURES.veiled : null),
+  stencil: panel.figure && panel.access !== "locked" ? loadFigure(path.join(ROOT, panel.figure)) : null,
+  ops: panel.access === "locked" ? FIGURES.veiled : FIGURES[panel.key] ?? null,
 }));
 const SLOT_U = 1 / PANELS.length;
 /** Half-width of a sealed panel's blur, in slots. Also the edge a wide figure
@@ -257,11 +257,13 @@ function bbox(ops) {
   return { minX, maxX, minY, maxY };
 }
 
-const FIGURE_FILL = 0.90; // of the panel's painted height
+const FIGURE_FILL = 0.96; // of the panel's painted height
 const FIGURE_TOP = 1.15;  // authored y that lands at the top of that height
-const FIGURE_SPAN = 0.78; // of the slot's width, at its widest figure
+const FIGURE_SPAN = 0.92; // of the slot's width, at its widest figure
 const panelRealHeight = ((V.panelBottom - V.panelTop) * SH) / pxV;
 const groundV = V.panelBottom - 0.020;
+const standingGroundV = V.panelBottom - 0.008;
+const standingRealHeight = ((standingGroundV - V.panelTop - 0.018) * SH) / pxV;
 
 for (const panel of PANELS) {
   if (!panel.stencil && !panel.ops) {
@@ -274,7 +276,11 @@ for (const panel of PANELS) {
 
 // One scale for every figure, so they keep the relative sizes they were drawn
 // at — and narrow enough that the widest of them fits its share of the belly.
-// With five slots instead of three, width is the binding constraint, not height.
+// With five slots instead of three, width is the binding constraint, not
+// height: every two-figure scene on this pot is pinned by FIGURE_SPAN and
+// nowhere near the height it is allowed. Raising the span is therefore the
+// only thing that makes a figure bigger; raising FIGURE_FILL alone does
+// nothing at all for the ones that matter.
 const slotRealWidth = (layout.bellyCircumference ?? 2 * Math.PI * layout.maxRadius) * SLOT_U;
 const widest = Math.max(...PANELS.map((panel) => { const b = bbox(panel.ops ?? FIGURES.veiled); return b.maxX - b.minX; }));
 const FIGURE_UNIT = Math.min(
@@ -323,7 +329,7 @@ for (const [index, panel] of PANELS.entries()) {
     // Real units first, then into texels, because a texel is not square on the
     // belly: the sheet is stretched about 1.5x horizontally at the widest point.
     const st = panel.stencil;
-    let realH = panelRealHeight * FIGURE_FILL;
+    let realH = panel.airborne ? panelRealHeight * FIGURE_FILL : standingRealHeight;
     let realW = realH * (st.w / st.h);
     const cap = panel.airborne ? spreadAllowance(index) : slotRealWidthCap;
     if (realW > cap) {
@@ -346,7 +352,7 @@ for (const [index, panel] of PANELS.entries()) {
     const maxDrawH = panelRealHeight * FIGURE_FILL * pxV;
     const bottom = panel.airborne
       ? Y(groundV) - (maxDrawH - drawH) / 2
-      : Y(groundV);
+      : Y(standingGroundV);
 
     for (let y = Math.floor(bottom - drawH); y < Math.ceil(bottom); y++) {
       const v = (y + 0.5 - (bottom - drawH)) / drawH;
@@ -411,12 +417,15 @@ for (const [index, panel] of PANELS.entries()) {
       }
     }
 
-    sealedRects.push({
-      x0: Math.max(0, Math.floor((cx - SLOT_U * SW * SEALED_HALF) / SS)),
-      x1: Math.min(W, Math.ceil((cx + SLOT_U * SW * SEALED_HALF) / SS)),
-      y0: Math.max(0, Math.floor(Y(V.panelTop) / SS)),
-      y1: Math.min(H, Math.ceil(Y(V.panelBottom) / SS)),
-    });
+    const x0 = Math.floor((cx - SLOT_U * SW * SEALED_HALF) / SS);
+    const x1 = Math.ceil((cx + SLOT_U * SW * SEALED_HALF) / SS);
+    const y0 = Math.max(0, Math.floor(Y(V.panelTop) / SS));
+    const y1 = Math.min(H, Math.ceil(Y(V.panelBottom) / SS));
+    for (const shift of [-W, 0, W]) {
+      const a = Math.max(0, x0 + shift);
+      const b = Math.min(W, x1 + shift);
+      if (a < b) sealedRects.push({ x0: a, x1: b, y0, y1 });
+    }
     continue;
   }
 
@@ -550,35 +559,41 @@ const sampleAO = (u, v) => {
 
 // --- palette (sRGB) --------------------------------------------------------
 const mix = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
-// Two families. The body is a soft brick throughout — the broad slipped fields
-// differ from the reserved ground only by a shade, enough to keep the vessel's
-// zones readable without the fields reading as a second colour. Everything
-// painted on it is umber.
+// Two families. The body is a fired terracotta, pulled a quarter of the way
+// back toward the dustier brick it was before, which is where it stops being
+// a colour and starts being a clay. The broad slipped fields differ from the reserved ground only by a shade, enough to keep the
+// vessel's zones readable without the fields reading as a second colour.
+// Everything painted on it is umber, dark enough to pass for black until you
+// look.
 //
 // The umber is dark enough that the frieze reads across a room, which is the
 // whole job of a figure band: at arm's length the vessel is 320px wide and the
-// drawings are a few pixels of line. The risk the depth brings is the opposite
-// one — push the umber much further and the vessel is a black-figure vase. It stays this side of that line by keeping the body
+// drawings are a few pixels of line.
+//
+// The clay is more saturated than it looks it should be on the flat sheet. It
+// has to be: the scene's fill light is a cold night sky, and a cold fill is a
+// desaturating one. Authored at the colour you want to see, the vessel renders
+// dusty — which is exactly what happened the first time. It stays this side of that line by keeping the body
 // dusty rather than orange and the umber brown rather than black. The dusty
 // part is mostly one number — the gap between green and blue. Widen it and the
 // clay slides straight back to terracotta.
 //
-// Measured in CIE L*: body 58, fields 53, ornament 21. The 26 points between
+// Measured in CIE L*: body 55, fields 49, ornament 19. The 26 points between
 // body and ornament is what carries the frieze; the 6 between body and fields
 // is the zoning.
-const CLAY_COOL = [162, 104, 90];
-const CLAY_BASE = [190, 127, 110]; // #be7f6e, the vessel's named body colour
-const CLAY_WARM = [212, 150, 130];
-const CLAY_PALE = [203, 165, 148];
-const FIELD_DEEP = [166, 105, 91];
-const FIELD_THIN = [185, 122, 106];
-const SLIP_FULL = [64, 43, 29]; // #402b1d, the umber of the drawings
-const SLIP_THIN = [92, 66, 45];
-const SLIP_BARE = [124, 88, 61]; // worn back toward the brick under it
-const ADDED_RED = [116, 60, 38];
+const CLAY_COOL = [166, 83, 57];
+const CLAY_BASE = [194, 104, 71]; // #c26847, the vessel's named body colour
+const CLAY_WARM = [221, 135, 97];
+const CLAY_PALE = [211, 154, 126];
+const FIELD_DEEP = [170, 86, 59];
+const FIELD_THIN = [190, 102, 72];
+const SLIP_FULL = [55, 35, 22]; // #372316, the umber of the drawings
+const SLIP_THIN = [82, 56, 37];
+const SLIP_BARE = [115, 76, 51]; // worn back toward the terracotta under it
+const ADDED_RED = [120, 54, 32];
 const ADDED_WHITE = [230, 218, 198];
-const CHIP_EDGE = [168, 112, 96];
-const ENCRUST = [203, 190, 170];
+const CHIP_EDGE = [182, 106, 76];
+const ENCRUST = [199, 185, 161];
 /* Crazing is dirt in a hairline, not a shadow: it reads brown-black because
    two centuries of it got in there, not because the crack is deep. */
 const CRACK_INK = [66, 44, 30];
@@ -664,10 +679,14 @@ function shade(material, sx, sy) {
     // both than the fields get. Age is allowed to soften a drawing; it is not
     // allowed to make it hard to read, and a frieze is the one thing on this
     // vessel that has a job beyond looking old.
+    //
+    // The chip weight is low for a reason beyond legibility: a figure is a
+    // large unbroken mass, and a loss that reads as plausible speckle on a
+    // band reads on a himation as a hole punched through it.
     const thinness = Math.max(0, thin - 0.62) / 0.38;
     const base = material === RED ? ADDED_RED : SLIP_FULL;
     colour = mix(base, material === RED ? mix(ADDED_RED, SLIP_BARE, 0.5) : SLIP_THIN, thinness * 0.45);
-    colour = chipped(colour, chipAt(), 0.55);
+    colour = chipped(colour, chipAt(), 0.3);
   } else if (material === GLAZE) {
     // The broad fields: the same clay fired a shade deeper and smoother, so
     // the vessel keeps its zones without keeping its black.
