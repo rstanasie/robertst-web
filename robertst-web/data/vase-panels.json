@@ -1,22 +1,22 @@
 {
   "_generated": "npm run content:sync — generated from the active collection, do not edit",
-  "collection": "2026-w47",
+  "collection": "the-king-minos",
   "panels": [
     {
-      "key": "zeus-law",
-      "name": "Zeus Law",
+      "key": "the-king-minos",
+      "name": "Zeus's Law",
       "angle": 36,
       "slot": 0,
       "access": "preview",
-      "figure": "content/figures/zeus-law.png"
+      "figure": "content/figures/the-king-minos.png"
     },
     {
-      "key": "dionysos-parents",
-      "name": "Dionysos's Parents",
+      "key": "dionysos",
+      "name": "Dionysos",
       "angle": 108,
       "slot": 1,
       "access": "preview",
-      "figure": "content/figures/dionysos-parents.png"
+      "figure": "content/figures/dionysos.png"
     },
     {
       "key": "icarus",
@@ -35,8 +35,8 @@
       "access": "locked"
     },
     {
-      "key": "pandora",
-      "name": "Pandora",
+      "key": "athena",
+      "name": "Athena",
       "angle": 324,
       "slot": 4,
       "access": "locked"

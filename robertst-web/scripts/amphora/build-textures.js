@@ -229,8 +229,8 @@ const PANELS = JSON.parse(fs.readFileSync(PANELS_PATH, "utf8")).map((panel) => (
   access: panel.access,
   airborne: Boolean(panel.airborne),
   u: (((180 - panel.angle) / 360) % 1 + 1) % 1,
-  stencil: panel.figure ? loadFigure(path.join(ROOT, panel.figure)) : null,
-  ops: FIGURES[panel.key] ?? (panel.access === "locked" ? FIGURES.veiled : null),
+  stencil: panel.figure && panel.access !== "locked" ? loadFigure(path.join(ROOT, panel.figure)) : null,
+  ops: panel.access === "locked" ? FIGURES.veiled : FIGURES[panel.key] ?? null,
 }));
 const SLOT_U = 1 / PANELS.length;
 /** Half-width of a sealed panel's blur, in slots. Also the edge a wide figure
@@ -262,6 +262,8 @@ const FIGURE_TOP = 1.15;  // authored y that lands at the top of that height
 const FIGURE_SPAN = 0.92; // of the slot's width, at its widest figure
 const panelRealHeight = ((V.panelBottom - V.panelTop) * SH) / pxV;
 const groundV = V.panelBottom - 0.020;
+const standingGroundV = V.panelBottom - 0.008;
+const standingRealHeight = ((standingGroundV - V.panelTop - 0.018) * SH) / pxV;
 
 for (const panel of PANELS) {
   if (!panel.stencil && !panel.ops) {
@@ -327,7 +329,7 @@ for (const [index, panel] of PANELS.entries()) {
     // Real units first, then into texels, because a texel is not square on the
     // belly: the sheet is stretched about 1.5x horizontally at the widest point.
     const st = panel.stencil;
-    let realH = panelRealHeight * FIGURE_FILL;
+    let realH = panel.airborne ? panelRealHeight * FIGURE_FILL : standingRealHeight;
     let realW = realH * (st.w / st.h);
     const cap = panel.airborne ? spreadAllowance(index) : slotRealWidthCap;
     if (realW > cap) {
@@ -350,7 +352,7 @@ for (const [index, panel] of PANELS.entries()) {
     const maxDrawH = panelRealHeight * FIGURE_FILL * pxV;
     const bottom = panel.airborne
       ? Y(groundV) - (maxDrawH - drawH) / 2
-      : Y(groundV);
+      : Y(standingGroundV);
 
     for (let y = Math.floor(bottom - drawH); y < Math.ceil(bottom); y++) {
       const v = (y + 0.5 - (bottom - drawH)) / drawH;
@@ -415,12 +417,15 @@ for (const [index, panel] of PANELS.entries()) {
       }
     }
 
-    sealedRects.push({
-      x0: Math.max(0, Math.floor((cx - SLOT_U * SW * SEALED_HALF) / SS)),
-      x1: Math.min(W, Math.ceil((cx + SLOT_U * SW * SEALED_HALF) / SS)),
-      y0: Math.max(0, Math.floor(Y(V.panelTop) / SS)),
-      y1: Math.min(H, Math.ceil(Y(V.panelBottom) / SS)),
-    });
+    const x0 = Math.floor((cx - SLOT_U * SW * SEALED_HALF) / SS);
+    const x1 = Math.ceil((cx + SLOT_U * SW * SEALED_HALF) / SS);
+    const y0 = Math.max(0, Math.floor(Y(V.panelTop) / SS));
+    const y1 = Math.min(H, Math.ceil(Y(V.panelBottom) / SS));
+    for (const shift of [-W, 0, W]) {
+      const a = Math.max(0, x0 + shift);
+      const b = Math.min(W, x1 + shift);
+      if (a < b) sealedRects.push({ x0: a, x1: b, y0, y1 });
+    }
     continue;
   }
 
